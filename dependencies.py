@@ -51,23 +51,10 @@ def retorna_lanctos(codi_emp,data_lancto):
             """
     cursor.execute(query, (codi_emp,data_lancto))
     lanctos = cursor.fetchall()
-    lanctos_pd = pd.DataFrame(lanctos,columns=["ctlancto.codi_emp",
-												"geempre.razao_emp",
-												"ctlancto.codi_lote",
-												"efentradas.nume_ent",
-												"ctlancto.data_lan",
-												"ctlancto.vlor_lan",
-												"ctlancto.cdeb_lan",
-												"cdeb_nome_cta",
-												"ctlancto.ccre_lan",
-												"ccre_nome_cta",
-												"ctlancto.chis_lan",
-												"ctlancto.codi_usu",
-												"ctlancto.orig_lan",
-												"ctlancto.origem_reg"])
     conn.close()
-    return lanctos_pd
+    return lanctos
 
 lanctos = retorna_lanctos(1, "2025-11-01")
 
-print(lanctos)
+for x in lanctos:
+    print(x)
