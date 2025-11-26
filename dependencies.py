@@ -53,8 +53,19 @@ def retorna_lanctos(codi_emp,data_lancto):
     lanctos = cursor.fetchall()
     conn.close()
     return lanctos
+#lanctos = retorna_lanctos(1, "2025-11-01")
 
-lanctos = retorna_lanctos(1, "2025-11-01")
+def retorna_menor_salario_min():
+    conn = conecta_odbc()
+    cursor = conn.cursor()
+    query = """
+			SELECT salario, codi_emp FROM bethadba.foprovisoes
+            WHERE salario < 1518 AND salario >0 AND competencia >= '2025-02-01'
+			"""
+    cursor.execute(query,)
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
 
-for x in lanctos:
-    print(x)
+salarios = retorna_menor_salario_min()
+print(salarios)
