@@ -1,6 +1,6 @@
 import pyodbc
 import pandas as pd
-
+from pprint import pprint
 CONEXAO = "DSN=ContabilPBI;UID=PBI;PWD=Pbi"
 
 def conecta_odbc():
@@ -59,8 +59,17 @@ def retorna_menor_salario_min():
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
-			SELECT salario, codi_emp FROM bethadba.foprovisoes
-            WHERE salario < 1518 AND salario >0 AND competencia >= '2025-02-01'
+			SELECT f.salario, e.nome, emp.NOME, f.competencia, f.vencto_ferias, f.tipo
+            FROM 
+            bethadba.foprovisoes f
+            LEFT JOIN
+            bethadba.foempregados e
+            ON f.i_empregados = e.i_empregados
+            AND f.codi_emp = e.codi_emp
+            LEFT JOIN
+            bethadba.PRVCLIENTES emp
+            ON f.codi_emp = emp.CODIGO
+            WHERE f.salario < 1518 AND f.salario > 0 AND f.competencia >= '2025-09-01' AND f.tipo = 1
 			"""
     cursor.execute(query,)
     resultado = cursor.fetchall()
@@ -68,4 +77,4 @@ def retorna_menor_salario_min():
     return resultado
 
 salarios = retorna_menor_salario_min()
-print(salarios)
+pprint(salarios)
