@@ -75,6 +75,3 @@ def retorna_menor_salario_min():
     resultado = cursor.fetchall()
     conn.close()
     return resultado
-
-salario = retorna_menor_salario_min()
-pprint(salario)
