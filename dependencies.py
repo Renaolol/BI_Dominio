@@ -97,3 +97,19 @@ def retorna_prox_ferias(competencia):
     conn.close()
     return resultado 
 
+def teste(empresa):
+    conn = conecta_odbc()
+    cursor = conn.cursor()
+    query = """
+                    SELECT e.sdev_sim, imp.codi_imp, imp.nome_imp, e.data_sim
+                    FROM bethadba.efsdoimp e
+                    LEFT JOIN 
+                    bethadba.geimposto imp
+                    ON e.CODI_IMP = imp.codi_imp AND e.CODI_EMP = imp.codi_emp
+                    WHERE e.CODI_EMP = ? AND e.data_sim >= '2025-01-01' AND e.sdev_sim > 0
+			"""
+    cursor.execute(query, (empresa))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado 
+pprint(teste(47))
