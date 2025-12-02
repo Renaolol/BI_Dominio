@@ -55,7 +55,7 @@ def retorna_lanctos(codi_emp,data_lancto):
     return lanctos
 #lanctos = retorna_lanctos(1, "2025-11-01")
 
-def retorna_menor_salario_min():
+def retorna_menor_salario_min(competencia):
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
@@ -69,9 +69,31 @@ def retorna_menor_salario_min():
             LEFT JOIN
             bethadba.PRVCLIENTES emp
             ON f.codi_emp = emp.CODIGO
-            WHERE f.salario < 1518 AND f.salario > 0 AND f.competencia >= '2025-09-01' AND f.tipo = 1
+            WHERE f.salario < 1518 AND f.salario > 0 AND f.competencia >= ? AND f.tipo = 1
 			"""
-    cursor.execute(query,)
+    cursor.execute(query,(competencia))
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
+def retorna_prox_ferias(competencia):
+    conn = conecta_odbc()
+    cursor = conn.cursor()
+    query = """
+			SELECT e.nome, f.GOZO_INICIO, f.GOZO_FIM, f.ABONO_PAGA, f.ABONO_INICIO, f.ABONO_FIM, emp.nome,f.TIPO
+            FROM 
+            bethadba.foempregados e
+            LEFT JOIN
+            bethadba.FOFERIAS_GOZO f
+            ON f.I_EMPREGADOS = e.i_empregados
+            AND f.CODI_EMP = e.codi_emp
+            LEFT JOIN
+            bethadba.PRVCLIENTES emp
+            ON e.codi_emp = emp.CODIGO
+            WHERE f.GOZO_INICIO >= ?
+			"""
+    cursor.execute(query, (competencia))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado 
+
