@@ -97,19 +97,46 @@ def retorna_prox_ferias(competencia):
     conn.close()
     return resultado 
 
-def teste(empresa):
+def vencimento_ferias (competencia_incial, competencia_final):
     conn = conecta_odbc()
     cursor = conn.cursor()
-    query = """
-                    SELECT e.sdev_sim, imp.codi_imp, imp.nome_imp, e.data_sim
-                    FROM bethadba.efsdoimp e
-                    LEFT JOIN 
-                    bethadba.geimposto imp
-                    ON e.CODI_IMP = imp.codi_imp AND e.CODI_EMP = imp.codi_emp
-                    WHERE e.CODI_EMP = ? AND e.data_sim >= '2025-01-01' AND e.sdev_sim > 0
-			"""
-    cursor.execute(query, (empresa))
+    query1 = """
+            SELECT
+            f.CODI_EMP, emp.NOME, e.nome, f.LIMITE_INICIO_GOZO, f.TIPO, f.GOZO_INICIO
+            FROM
+            bethadba.FOFERIAS_PROGRAMACAO f
+            LEFT JOIN
+            bethadba.foempregados e
+            ON
+            f.CODI_EMP = e.codi_emp
+            AND
+            f.I_EMPREGADOS = e.I_empregados
+            LEFT JOIN
+            bethadba.PRVCLIENTES emp
+            ON
+            e.codi_emp = emp.CODIGO
+            WHERE
+            f.LIMITE_INICIO_GOZO >= ? AND f.LIMITE_INICIO_GOZO <=? AND f.TIPO = 1
+            """
+    query2 = """
+            SELECT
+            f.CODI_EMP, emp.NOME, e.nome, f.LIMITE_PARA_GOZO, f.SITUACAO
+            FROM
+            bethadba.FOFERIAS_AQUISITIVOS f
+            LEFT JOIN
+            bethadba.foempregados e
+            ON
+            f.CODI_EMP = e.codi_emp
+            AND
+            f.I_EMPREGADOS = e.I_empregados
+            LEFT JOIN
+            bethadba.PRVCLIENTES emp
+            ON
+            e.codi_emp = emp.CODIGO
+            WHERE
+            f.LIMITE_PARA_GOZO >= ? AND f.LIMITE_PARA_GOZO <=? AND (f.SITUACAO = 1 OR f.SITUACAO = 2) AND emp.SITUACAO != 'I' AND emp.CODIGO <=999
+            """
+    cursor.execute(query2, (competencia_incial, competencia_final))
     resultado = cursor.fetchall()
     conn.close()
     return resultado 
-pprint(teste(47))
