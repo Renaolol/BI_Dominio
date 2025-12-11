@@ -1,6 +1,7 @@
 import pyodbc
 import pandas as pd
 from pprint import pprint
+from datetime import timedelta, time, date, datetime
 CONEXAO = "DSN=ContabilPBI;UID=PBI;PWD=Pbi"
 
 def conecta_odbc():
@@ -54,7 +55,6 @@ def retorna_lanctos(codi_emp,data_lancto):
     conn.close()
     return lanctos
 #lanctos = retorna_lanctos(1, "2025-11-01")
-
 def retorna_menor_salario_min(competencia):
     conn = conecta_odbc()
     cursor = conn.cursor()
@@ -140,3 +140,106 @@ def vencimento_ferias (competencia_incial, competencia_final):
     resultado = cursor.fetchall()
     conn.close()
     return resultado 
+
+def registro_atividades(data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+            e.nome_emp, l.usua_log, l.data_log, l.tini_log, l.tfim_log, dfim_log,l.sist_log
+            FROM
+            bethadba.geloguser l
+            LEFT JOIN bethadba.geempre e
+            ON l.codi_emp = e.codi_emp
+            WHERE l.data_log >= ?  AND l.data_log <=?
+            ORDER BY l.data_log
+            """
+    cursor.execute(query,(data_inicial,data_final))
+    atividades = cursor.fetchall()
+    conn.close()
+    return atividades
+  
+def retorna_usuarios(data_inicial):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT DISTINCT
+            usua_log
+            FROM
+            bethadba.geloguser
+            WHERE
+            data_log >=?
+            """
+    cursor.execute(query,(data_inicial))
+    users = cursor.fetchall()
+    conn.close()
+    return users  
+
+def time_to_timedelta(t):
+    return timedelta(hours=t.hour,minutes=t.minute,seconds=t.second)
+    
+def retorna_modulo():
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT nome, codigo from bethadba.GEMODULOS
+            """
+    cursor.execute(query)
+    modulo = cursor.fetchall()
+    conn.close()
+    return modulo          
+
+def retorna_ociosos():
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT c.usuario, c.inicio_conexao, e.NOME, c.ocioso_inicial
+            FROM
+            bethadba.geconexoesativas c
+            LEFT JOIN
+            bethadba.PRVCLIENTES e
+            ON
+            c.empresa = e.CODIGO
+            WHERE c.empresa >0 AND c.ocioso_inicial > '1900-01-01' 
+            """
+    cursor.execute(query)
+    modulo = cursor.fetchall()
+    conn.close()
+    return modulo
+
+def retorna_conectado():
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT c.usuario, c.inicio_conexao, e.NOME
+            FROM
+            bethadba.geconexoesativas c
+            LEFT JOIN
+            bethadba.PRVCLIENTES e
+            ON
+            c.empresa = e.CODIGO
+            WHERE c.empresa > 0 AND (c.ocioso_inicial = '1900-01-01' OR c.ocioso_inicial IS NULL)
+            """
+    cursor.execute(query)
+    modulo = cursor.fetchall()
+    conn.close()
+    return modulo
+
+def retorna_faturamento_por_imposto(dt_init,cod):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT i.nome_imp, s.sdev_sim, s.scre_sim, s.vcos_sim, s.vcov_sim,s.data_sim
+            FROM bethadba.efsdoimp s
+            LEFT JOIN bethadba.geimposto i
+            ON s.codi_emp = i.codi_emp AND s.codi_imp = i.codi_imp
+            WHERE
+            s.data_sim >= ? AND (s.sdev_sim > 0 OR s.scre_sim > 0) AND s.codi_emp =?
+            """
+    cursor.execute(query,(dt_init,cod))
+    empresa = cursor.fetchall()
+    conn.close()
+    return empresa    
+def retorna_nome_empresa(cod):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT NOME FROM bethadba.PRVCLIENTES WHERE CODIGO = ?
+            """
+    cursor.execute(query,(cod))
+    empresa = cursor.fetchall()
+    conn.close()
+    return empresa     
