@@ -167,10 +167,10 @@ with col_dados4:
                     origem = "Ajustes PIS e COFINS imob."       
                 else:
                     origem = "Honorários"
-                st.write(f'{origem} - {x[0]} cód - {x[1]}')
+                st.write(f'{origem} - {x[0]}')
             
         st.write(f"Lanctos de Extrato: {contagem_lancto_extrato[0][0]}")    
- 
+
 st.divider()
 col_faturamento1, col_faturamento2,col_faturamento3 = st.columns([0.5,1,2])
  
