@@ -3,6 +3,7 @@ import pandas as pd
 from dependencies import *
 import datetime
 from datetime import timedelta, time
+import altair as alt
 st.set_page_config(layout="wide")
 st.title("Empresas")
 st.header("Comparar estatísticas das empresas")
@@ -17,7 +18,7 @@ if opt_datas == "Períodos":
         cod = st.number_input("Insira o código da empresa",step=0,width=300)
 else:
     with col1:
-        opt_anos = st.radio("Anos:",options=[2021,2022,2023,2024,2025],horizontal=True)
+        opt_anos = st.radio("Anos:",options=[2021,2022,2023,2024,2025,2026],horizontal=True)
         if opt_anos == 2021:
             dt_init = '2021-01-01'
             dt_fim = '2021-12-31'
@@ -33,18 +34,15 @@ else:
         elif opt_anos == 2025:
             dt_init = '2025-01-01'
             dt_fim = '2025-12-31'
+        elif opt_anos == 2026:
+            dt_init = '2026-01-01'
+            dt_fim = '2026-12-31'            
     with col2:        
         cod = st.number_input("Insira o código da empresa",step=0,width=300)                                            
 
 nome_empresa = retorna_nome_empresa(cod)
 try:
     st.subheader(f"Empresa : {nome_empresa[0][0]}")
-    impostos = retorna_faturamento_por_imposto(dt_init,cod)
-    impostos_list = []
-    for x in impostos:
-        impostos_list.append([x[0],x[1],x[2],x[3],x[4],x[5].strftime("%m/%Y")])
-    impostos_df = pd.DataFrame(impostos_list,columns=["Imposto","Saldo Devedor","Saldo Credor","Valor Saídas","Valor Serviços","Competencia"])    
-    #st.write(impostos_df)
 except:
     st.error("Insira o código de uma empresa válida")    
 #Apresentação dos dados    
@@ -62,9 +60,8 @@ for x in modulo:
 modulo_df = pd.DataFrame(modulo_list,columns=["Módulo", "Módulo ID"])
 tempo_gasto_merged = pd.merge(tempo_gasto_df,modulo_df, on='Módulo ID')
 with st.container(border=True,horizontal_alignment="center"):
-    st.subheader(f'Total de tempo gasto para a empresa *{formata_horas_min_seg((tempo_gasto_df["Tempo gasto"].sum()))}*')
-#st.write(tempo_gasto_merged[["Usuário","Data","Tempo gasto","Módulo"]])  
-col_dados1, col_dados2, col_dados3 = st.columns(3)
+    st.subheader(f'Total de tempo gasto para a empresa *{formata_horas_min_seg((tempo_gasto_df["Tempo gasto"].sum()))}*') 
+col_dados1, col_dados2, col_dados3, col_dados4 = st.columns(4)
 with col_dados1:
     with st.container(border=True):
         st.header("TEMPO")
@@ -96,4 +93,59 @@ with col_dados2:
                 st.write(x[0])
 with col_dados3:
     with st.container(border=True):
-        st.write("Aqui vai a variação de faturamento")                
+        st.header("FISCAL")
+        contagem_notas_entrada = retorna_contagem_entradas(cod,dt_init,dt_fim)
+        contagem_notas_entrada_list = []
+        for x in contagem_notas_entrada:
+            contagem_notas_entrada_list.append([x[0]])
+        contagem_notas_saida = retorna_contagem_saidas(cod,dt_init,dt_fim)
+        contagem_notas_saida_list = []
+        for x in contagem_notas_saida:
+            contagem_notas_saida_list.append([x[0]])
+        contagem_notas_servico = retorna_contagem_servico(cod,dt_init,dt_fim)
+        contagem_notas_servico_list=[]
+        for x in contagem_notas_servico:
+            contagem_notas_servico_list.append([x[0]])    
+        st.write(f"Contagem de lançamentos de Entrada: *{contagem_notas_entrada_list[0][0]}* ")
+        contagem_acum_entrada=retorna_contagem_acumulador_entrada(cod,dt_init,dt_fim)
+        with st.expander("Acumuladores Entradas: "):
+            for x in contagem_acum_entrada:
+                st.write(f'{x[1]} -  {x[0]}')    
+        st.write(f"Contagem de lançamentos de Saída: *{contagem_notas_saida_list[0][0]}* ")
+        contagem_acum_saida=retorna_contagem_acumulador_saida(cod,dt_init,dt_fim)
+        with st.expander("Acumuladores Saídas: "):
+            for x in contagem_acum_saida:
+                st.write(f'{x[1]} -  {x[0]}')        
+        st.write(f"Contagem de lançamentos de Serviço: *{contagem_notas_servico_list[0][0]}* ")
+        contagem_acum_servico=retorna_contagem_acumulador_servico(cod,dt_init,dt_fim)
+        with st.expander("Acumuladores Serviços: "):
+            for x in contagem_acum_servico:
+                st.write(f'{x[1]} -  {x[0]}')         
+with col_dados4:
+    with st.container(border=True):
+        st.header("CONTABIL")
+        st.write("Aqui vai vir as coisas do Contabil")
+ 
+st.divider()
+col_faturamento1, col_faturamento2,col_faturamento3 = st.columns([0.5,1,2])
+ 
+impostos_empresa = retorna_impostos_empresa(cod,dt_init,dt_fim)
+impostos_empresa_list = []
+for x in impostos_empresa:
+    impostos_empresa_list.append(x[0])
+with col_faturamento1:       
+    opt_imposto = st.radio("Selecione o imposto", options=impostos_empresa_list)
+valores_impostos = retorna_debito_credito_imposto(cod,dt_init,dt_fim,opt_imposto)
+valores_impostos_list = []
+for x in valores_impostos:
+    valores_impostos_list.append([x[0],x[1],x[2],x[3],x[4]])
+valores_impostos_df = pd.DataFrame(valores_impostos_list,columns=["Valor Débito","Valor Crédito","Competência","Vlr Saídas","Vlr Serviços"])
+valores_impostos_df["Faturamento"] = valores_impostos_df["Vlr Saídas"] + valores_impostos_df["Vlr Serviços"]
+grafico_linha = pd.DataFrame(columns=["Faturamento"])  
+grafico_linha= valores_impostos_df.groupby("Competência")["Faturamento"].sum().reset_index(name="Faturamento") 
+grafico_linha["Faturamento"] = pd.to_numeric(grafico_linha["Faturamento"])
+with col_faturamento2:
+    st.write(valores_impostos_df[["Competência","Faturamento"]])
+with col_faturamento3:    
+    st.altair_chart(altair_chart=(alt.Chart(grafico_linha).mark_line(color="#Fad32b",interpolate="linear",
+                                                                     line={'color':'gray'}).encode(x="Competência", y="Faturamento")))

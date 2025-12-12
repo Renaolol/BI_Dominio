@@ -220,21 +220,6 @@ def retorna_conectado():
     conn.close()
     return modulo
 
-def retorna_faturamento_por_imposto(dt_init,cod):
-    conn=conecta_odbc()
-    cursor=conn.cursor()
-    query="""SELECT i.nome_imp, s.sdev_sim, s.scre_sim, s.vcos_sim, s.vcov_sim,s.data_sim
-            FROM bethadba.efsdoimp s
-            LEFT JOIN bethadba.geimposto i
-            ON s.codi_emp = i.codi_emp AND s.codi_imp = i.codi_imp
-            WHERE
-            s.data_sim >= ? AND (s.sdev_sim > 0 OR s.scre_sim > 0) AND s.codi_emp =?
-            """
-    cursor.execute(query,(dt_init,cod))
-    empresa = cursor.fetchall()
-    conn.close()
-    return empresa    
-
 def retorna_nome_empresa(cod):
     conn=conecta_odbc()
     cursor=conn.cursor()
@@ -264,7 +249,7 @@ def formata_horas_min_seg(valor):
     elif valor >= 60.00:
         horas = int(valor)//60
         minutos = int(valor)-(horas*60)       
-        segundos = (valor - horas - minutos)/60
+        segundos = (valor - (horas*60) - minutos)*60
         if horas >=10:
             horas = f'{horas:.0f}'
         else:    
@@ -352,6 +337,7 @@ def retorna_total_funcionarios(cod):
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
 def retorna_nome_funcionarios(cod):
     conn=conecta_odbc()
     cursor=conn.cursor()
@@ -405,3 +391,147 @@ def retorna_nome_demitidos(cod, data_inicial,data_final):
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
+def retorna_impostos_empresa(cod,data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT DISTINCT(i.nome_imp) FROM
+            bethadba.efsdoimp s
+            LEFT JOIN 
+            bethadba.EFIMPOSTO i
+            ON
+            s.codi_emp = i.codi_emp AND s.codi_imp = i.codi_imp
+            WHERE
+            s.codi_emp = ? AND s.data_sim >= ? AND s.data_sim <= ? AND (s.sdev_sim > 0 OR scre_sim >0)
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_debito_credito_imposto(cod, data_inicial,data_final, imposto):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                s.sdev_sim, s.scre_sim, s.data_sim, s.vcos_sim, s.vcov_sim
+            FROM
+                bethadba.efsdoimp s
+            LEFT JOIN bethadba.EFIMPOSTO i
+            ON
+                s.codi_imp = i.codi_imp AND s.codi_emp = i.codi_emp
+            WHERE
+                s.codi_emp = ? AND s.data_sim >=? AND s.data_sim <=? AND i.nome_imp = ? 
+            """
+    cursor.execute(query,(cod, data_inicial,data_final,imposto))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_contagem_entradas(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(nume_ent)
+            FROM
+                bethadba.efentradas
+            WHERE
+                codi_emp = ? AND ddoc_ent >= ? AND ddoc_ent <= ? 
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_contagem_saidas(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(nume_sai)
+            FROM
+                bethadba.efsaidas
+            WHERE
+                codi_emp = ? AND ddoc_sai >= ? AND ddoc_sai <= ? 
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_contagem_servico(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(nume_ser)
+            FROM
+                bethadba.efservicos
+            WHERE
+                codi_emp = ? AND ddoc_ser >= ? AND ddoc_ser <= ? 
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_contagem_acumulador_entrada(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(e.nume_ent), a.nome_acu
+            FROM
+                bethadba.efentradas e
+            LEFT JOIN bethadba.EFACUMULADOR a 
+            ON
+            e.codi_emp = a.codi_emp AND e.codi_acu = a.codi_acu   
+            WHERE
+                e.codi_emp = ? AND e.ddoc_ent >= ? AND e.ddoc_ent <= ?
+            GROUP BY 
+            a.nome_acu                
+             
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_contagem_acumulador_saida(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(e.nume_sai), a.nome_acu
+            FROM
+                bethadba.efsaidas e
+            LEFT JOIN bethadba.EFACUMULADOR a 
+            ON
+            e.codi_emp = a.codi_emp AND e.codi_acu = a.codi_acu   
+            WHERE
+                e.codi_emp = ? AND e.ddoc_sai >= ? AND e.ddoc_sai <= ?
+            GROUP BY 
+            a.nome_acu                
+             
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado   
+
+def retorna_contagem_acumulador_servico(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(e.nume_ser), a.nome_acu
+            FROM
+                bethadba.efservicos e
+            LEFT JOIN bethadba.EFACUMULADOR a 
+            ON
+            e.codi_emp = a.codi_emp AND e.codi_acu = a.codi_acu   
+            WHERE
+                e.codi_emp = ? AND e.ddoc_ser >= ? AND e.ddoc_ser <= ?
+            GROUP BY 
+            a.nome_acu                
+             
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado   
+
