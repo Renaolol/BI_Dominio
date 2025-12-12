@@ -247,5 +247,161 @@ def retorna_nome_empresa(cod):
 
 def formata_valor(valor):
     if valor is None or "0":
-        pass
-    return
+        valor = "R$ 0,00"
+    else:
+        valor = str(valor)
+        valor = f'R$ {valor.replace(",","X").replace(".",",").replace("X",".")}'
+    return valor
+
+def formata_horas_min_seg(valor):
+    resultado = valor    
+    if valor <= 0.99999999:
+        valor = valor*60
+        if valor < 10:
+            resultado = f"00:00:{valor:.0f}0"
+        else:    
+            resultado = f"00:00:{valor:.0f}"
+    elif valor >= 60.00:
+        horas = int(valor)//60
+        minutos = int(valor)-(horas*60)       
+        segundos = (valor - horas - minutos)/60
+        if horas >=10:
+            horas = f'{horas:.0f}'
+        else:    
+            horas = f'0{horas:.0f}'
+        if segundos <10 :
+            segundos = f'{segundos:.0f}0'
+        else:
+            segundos = str(f'{segundos:.0f}')    
+        if minutos < 10:
+            resultado = str(f'{horas}:0{minutos:.0f}:{segundos}')    
+        else:
+            resultado = str(f'{horas}:{minutos:.0f}:{segundos}')        
+    elif valor >= 1.0:
+        minutos = int(valor)
+        segundos = (valor - minutos)*60
+        horas = '00'
+        if segundos <10 :
+            segundos = f'{segundos:.0f}0'
+        else:
+            segundos = f'{segundos:.0f}'    
+        if minutos < 10:
+            resultado = str(f'{horas}:0{minutos:.0f}:{segundos}')      
+        else:
+            resultado = str(f'{horas}:{minutos:.0f}:{segundos}')          
+    return resultado
+
+def retorna_tempo_trabalho_empresa(cod, data_inicial, data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+            l.usua_log, l.data_log, l.tini_log, l.tfim_log, dfim_log, l.sist_log
+            FROM
+            bethadba.geloguser l
+            WHERE l.codi_emp = ? AND l.data_log >= ?  AND l.data_log <=?
+            ORDER BY l.data_log
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_admissoes(cod, data_inicial, data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                COUNT(nome)
+            FROM
+                bethadba.foempregados
+            WHERE codi_emp = ? AND admissao >= ? AND admissao <= ?
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+   
+    return resultado
+
+def retorna_nome_admissoes(cod, data_inicial, data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                nome
+            FROM
+                bethadba.foempregados
+            WHERE codi_emp = ? AND admissao >= ? AND admissao <= ?
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_total_funcionarios(cod):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                COUNT(e.nome)
+            FROM
+                bethadba.foempregados e
+            LEFT JOIN 
+                bethadba.forescisoes r
+            ON
+                e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
+            WHERE e.codi_emp = ? AND r.demissao IS NULL
+            """
+    cursor.execute(query,(cod))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+def retorna_nome_funcionarios(cod):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                e.nome
+            FROM
+                bethadba.foempregados e
+            LEFT JOIN 
+                bethadba.forescisoes r
+            ON
+                e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
+            WHERE e.codi_emp = ? AND r.demissao IS NULL
+            """
+    cursor.execute(query,(cod))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_demitidos(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                COUNT(e.nome)
+            FROM
+                bethadba.foempregados e
+            LEFT JOIN 
+                bethadba.forescisoes r
+            ON
+                e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
+            WHERE e.codi_emp = ? AND r.demissao >= ? and r.demissao <= ?
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_nome_demitidos(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                e.nome
+            FROM
+                bethadba.foempregados e
+            LEFT JOIN 
+                bethadba.forescisoes r
+            ON
+                e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
+            WHERE e.codi_emp = ? AND r.demissao >= ? and r.demissao <= ?
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado

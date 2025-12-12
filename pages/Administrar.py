@@ -36,6 +36,7 @@ for x in registro:
 registro_df = pd.DataFrame(registro_list,columns=["Empresa","Usuário","Data","Tempo Inicial","Tempo Final","Tempo gasto","Módulo ID"])
 registro_df["Tempo gasto"] = pd.to_numeric(registro_df["Tempo gasto"], errors="coerce")
 registro_df_fil = registro_df[registro_df["Usuário"].str.contains(user)]
+registro_df_fil["Tempo"] = registro_df_fil["Tempo gasto"].apply(formata_horas_min_seg)
 modulo_utilizado = retorna_modulo()
 
 modulo_list = []
@@ -52,15 +53,15 @@ registro_grafico_pizza = (
         .div(60)
         .reset_index(name="Tempo gasto")
 )
-#xibição dos dados
+#exibição dos dados
 col_dados1, col_dados2 = st.columns([3,1])
 with col_dados1:
-    st.write(registro_df_fil_merged[["Empresa","Usuário","Data","Tempo Inicial","Tempo Final","Tempo gasto","Módulo"]])
+    st.write(registro_df_fil_merged[["Empresa","Usuário","Data","Tempo Inicial","Tempo Final","Tempo","Módulo"]])
 with col_dados2:
     st.altair_chart(altair_chart=(alt.Chart(registro_grafico_pizza).mark_arc().encode(theta="Tempo gasto",color="Módulo")),theme='streamlit')
 with st.container(border=True,horizontal=True):
     st.subheader(f'Total de horas trabalhadas no Sistema Domínio: ')
-    st.subheader(f'{(registro_df_fil["Tempo gasto"].sum()/60):,.2f}')
+    st.subheader(f'{formata_horas_min_seg(registro_df_fil["Tempo gasto"].sum())}')
 st.divider()
 
 #Gráfico
