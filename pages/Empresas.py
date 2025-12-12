@@ -11,6 +11,6 @@ st.subheader(f"Empresa : {nome_empresa[0][0]}")
 impostos = retorna_faturamento_por_imposto(dt_init,cod)
 impostos_list = []
 for x in impostos:
-    impostos_list.append([x[0],x[1],x[2],x[3],x[4],x[5]])
-impostos_df = pd.DataFrame(impostos_list)    
-st.write(impostos_list)
+    impostos_list.append([x[0],x[1],x[2],x[3],x[4],x[5].strftime("%m/%Y")])
+impostos_df = pd.DataFrame(impostos_list,columns=["Imposto","Saldo Devedor","Saldo Credor","Valor Saídas","Valor Serviços","Competencia"])    
+st.write(impostos_df)

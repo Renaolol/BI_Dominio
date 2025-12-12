@@ -234,6 +234,7 @@ def retorna_faturamento_por_imposto(dt_init,cod):
     empresa = cursor.fetchall()
     conn.close()
     return empresa    
+
 def retorna_nome_empresa(cod):
     conn=conecta_odbc()
     cursor=conn.cursor()
@@ -242,4 +243,9 @@ def retorna_nome_empresa(cod):
     cursor.execute(query,(cod))
     empresa = cursor.fetchall()
     conn.close()
-    return empresa     
+    return empresa 
+
+def formata_valor(valor):
+    if valor is None or "0":
+        pass
+    return
