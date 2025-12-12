@@ -124,7 +124,52 @@ with col_dados3:
 with col_dados4:
     with st.container(border=True):
         st.header("CONTABIL")
-        st.write("Aqui vai vir as coisas do Contabil")
+        contagem_lancto_contabil = retorna_contagem_lanctos_contabil(cod,dt_init,dt_fim)
+        st.write(f"Contagem de lançamentos Contabeis : {contagem_lancto_contabil[0][0]}")
+        contagem_lancto_contabil_origem = retorna_contagem_tipo_lancto(cod,dt_init,dt_fim)
+        contagem_lancto_extrato = retorna_lancto_extrato(cod,dt_init,dt_fim)
+        with st.expander("Origem dos lançamentos"):
+            for x in contagem_lancto_contabil_origem:
+                origem = ""
+                if x [1] == 1:
+                    origem = "Normal"
+                elif x[1] == 2:
+                    origem ="Zeramento"
+                elif x[1] == 3:
+                    origem = "Patrimônio"
+                elif x[1] == 4:
+                    origem = "Escrita"
+                elif x[1] == 5:
+                    origem = "Saida"
+                elif x[1] == 6:
+                    origem = "Entrada"
+                elif x[1] == 7:
+                    origem = "Serviço"
+                elif x[1] == 8:
+                    origem = "Ajustes EF"
+                elif x[1] == 9:
+                    origem = "Acumulador EF"
+                elif x[1] == 10:
+                    origem = "Apuração EF"
+                elif x[1] == 11:
+                    origem = "Pagto Guia"
+                elif x[1] == 12:
+                    origem = "Cliente"
+                elif x[1] == 13:
+                    origem = "Folha"
+                elif x[1] == 39:
+                    origem = "Extrato Bancário"
+                elif x[1] == 66:
+                    origem = "Pagto Guia Folha Pagto." 
+                elif x[1] == 25:
+                    origem = "Ajustes de PIS e COFINS"
+                elif x[1] == 23:
+                    origem = "Ajustes PIS e COFINS imob."       
+                else:
+                    origem = "Honorários"
+                st.write(f'{origem} - {x[0]} cód - {x[1]}')
+            
+        st.write(f"Lanctos de Extrato: {contagem_lancto_extrato[0][0]}")    
  
 st.divider()
 col_faturamento1, col_faturamento2,col_faturamento3 = st.columns([0.5,1,2])

@@ -535,3 +535,48 @@ def retorna_contagem_acumulador_servico(cod, data_inicial,data_final):
     conn.close()
     return resultado   
 
+def retorna_contagem_lanctos_contabil(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(nume_lan)
+            FROM
+                bethadba.ctlancto
+            WHERE
+                codi_emp = ? AND data_lan >= ? AND data_lan <= ?
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado      
+
+def retorna_contagem_tipo_lancto(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(nume_lan), orig_lan
+            FROM
+                bethadba.ctlancto
+            WHERE
+                codi_emp = ? AND data_lan >= ? AND data_lan <= ?
+            GROUP BY orig_lan
+            """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_lancto_extrato(cod, data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT 
+                COUNT(codi_emp)
+            FROM
+                bethadba.CTEXTRATO_BANCARIO_LANCAMENTO_ITEM
+            WHERE codi_emp = ? AND DATA_ITEM >= ? AND DATA_ITEM <= ?
+             """
+    cursor.execute(query,(cod, data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
