@@ -231,11 +231,8 @@ def retorna_nome_empresa(cod):
     return empresa 
 
 def formata_valor(valor):
-    if valor is None or "0":
-        valor = "R$ 0,00"
-    else:
-        valor = str(valor)
-        valor = f'R$ {valor.replace(",","X").replace(".",",").replace("X",".")}'
+    valor = f'{valor:,.2f}'
+    valor = f'R$ {valor.replace(",","X").replace(".",",").replace("X",".")}'
     return valor
 
 def formata_horas_min_seg(valor):
@@ -579,4 +576,31 @@ def retorna_lancto_extrato(cod, data_inicial,data_final):
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
+def retorna_valor_hono(cod):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""
+        SELECT
+            e.codi_emp, c.I_CLIENTE,c.I_CONTRATO, cli.APELIDO, c.DATA_EMISSAO, c.VALOR_CONTRATO, c.DATA_INICIO, nv.VALOR_APLICADO, nv.DATA_REAJUSTE
+        FROM
+            bethadba.HRCONTRATO c
+        LEFT JOIN bethadba.HRCLIENTE cli
+        ON
+            c.I_CLIENTE = cli.I_CLIENTE
+        LEFT JOIN bethadba.geempre e
+        ON
+            cli.INSCRICAO = e.cgce_emp
+        LEFT JOIN bethadba.HRREAJUSTE_CONTRATO nv
+        ON
+            c.I_CONTRATO = nv.I_CONTRATO
+        WHERE
+            c.DATA_TERMINO IS NULL AND e.codi_emp = ?
+        """
+    cursor.execute(query, (cod))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+
 
