@@ -1,2 +1,4 @@
 [theme]
 chartCategoricalColors=["#fad32b","#c0c0c0","#555555ff","#8f874f"]
+[server]
+port = 8080
