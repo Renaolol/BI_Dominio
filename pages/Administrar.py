@@ -8,10 +8,8 @@ st.title("B.I Administrativo")
 st.header("Informativo sobre Usuários")
 
 col1,col2,col3=st.columns(3)
-with col1:
-    dt_init = st.date_input("Insira a data inicial",width=300,value=(datetime.today() - timedelta(30)),format="DD/MM/YYYY")
-with col2:    
-    dt_fim = st.date_input("Insira a data final",width=300,format="DD/MM/YYYY")
+dt_init = st.sidebar.date_input("Insira a data inicial",width=300,value=(datetime.today() - timedelta(30)),format="DD/MM/YYYY")   
+dt_fim = st.sidebar.date_input("Insira a data final",width=300,format="DD/MM/YYYY")
 
 if dt_init > dt_fim:
     st.warning("Data inicial não pode ser maior que a data final")
@@ -19,9 +17,8 @@ if dt_init > dt_fim:
 usuarios = retorna_usuarios(dt_init)
 users_list =[]
 for x in usuarios:
-    users_list.append(x[0])
-with col3:      
-    user = st.selectbox("Selecione o usuário",options=users_list,width=300)
+    users_list.append(x[0])     
+user = st.sidebar.selectbox("Selecione o usuário",options=users_list,width=300)
        
 try:
     registro = registro_atividades(dt_init,dt_fim)
@@ -93,3 +90,5 @@ with coluna_usuarios2:
 
     conectados_df=pd.DataFrame(conectados_list,columns=["Usuário","Data/Hora","Empresa"])
     st.dataframe(conectados_df)
+
+st.divider()

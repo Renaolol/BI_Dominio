@@ -167,6 +167,7 @@ def retorna_usuarios(data_inicial):
             bethadba.geloguser
             WHERE
             data_log >=?
+            ORDER BY usua_log
             """
     cursor.execute(query,(data_inicial))
     users = cursor.fetchall()
@@ -400,6 +401,7 @@ def retorna_impostos_empresa(cod,data_inicial,data_final):
             s.codi_emp = i.codi_emp AND s.codi_imp = i.codi_imp
             WHERE
             s.codi_emp = ? AND s.data_sim >= ? AND s.data_sim <= ? AND (s.sdev_sim > 0 OR scre_sim >0)
+            ORDER BY i.nome_imp
             """
     cursor.execute(query,(cod, data_inicial,data_final))
     resultado = cursor.fetchall()
@@ -602,5 +604,17 @@ def retorna_valor_hono(cod):
     conn.close()
     return resultado
 
-
-
+def retorna_tempo_empresa_geral(data_inicial, data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+            l.usua_log, l.data_log, l.tini_log, l.tfim_log, dfim_log, l.sist_log
+            FROM
+            bethadba.geloguser l
+            WHERE l.data_log >= ?  AND l.data_log <=?
+            ORDER BY l.data_log
+            """
+    cursor.execute(query,(data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado

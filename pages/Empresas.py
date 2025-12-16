@@ -6,39 +6,32 @@ from datetime import timedelta, time
 import altair as alt
 st.set_page_config(layout="wide")
 st.title("Empresas")
-st.header("Comparar estatísticas das empresas")
-opt_datas = st.radio("Selecione como deseja filtrar as datas", options=["Anos","Períodos"],horizontal=True)
-col1,col2,col3 = st.columns(3)
+opt_datas = st.sidebar.radio("Selecione como deseja filtrar as datas", options=["Anos","Períodos"],horizontal=True)
 if opt_datas == "Períodos":
-    with col1:
-        dt_init = st.date_input("Insira a data inicial",format="DD/MM/YYYY",value=(datetime.date.today() - datetime.timedelta(60)),width=300)
-    with col2:
-        dt_fim = st.date_input("Insira a data final",width=300,format="DD/MM/YYYY")
-    with col3:
-        cod = st.number_input("Insira o código da empresa",step=0,width=300)
+    dt_init = st.sidebar.date_input("Insira a data inicial",format="DD/MM/YYYY",value=(datetime.date.today() - datetime.timedelta(60)),width=300)
+    dt_fim = st.sidebar.date_input("Insira a data final",width=300,format="DD/MM/YYYY")
+    cod = st.sidebar.number_input("Insira o código da empresa",step=0,width=300)
 else:
-    with col1:
-        opt_anos = st.radio("Anos:",options=[2021,2022,2023,2024,2025,2026],horizontal=True)
-        if opt_anos == 2021:
-            dt_init = '2021-01-01'
-            dt_fim = '2021-12-31'
-        elif opt_anos == 2022:
-            dt_init = '2022-01-01'
-            dt_fim = '2022-12-31'
-        elif opt_anos == 2023:
-            dt_init = '2023-01-01'
-            dt_fim = '2023-12-31' 
-        elif opt_anos == 2024:
-            dt_init = '2024-01-01'
-            dt_fim = '2024-12-31' 
-        elif opt_anos == 2025:
-            dt_init = '2025-01-01'
-            dt_fim = '2025-12-31'
-        elif opt_anos == 2026:
-            dt_init = '2026-01-01'
-            dt_fim = '2026-12-31'            
-    with col2:        
-        cod = st.number_input("Insira o código da empresa",step=0,width=300)                                            
+    opt_anos = st.sidebar.radio("Anos:",options=[2021,2022,2023,2024,2025,2026],horizontal=True,index=4)
+    if opt_anos == 2021:
+        dt_init = '2021-01-01'
+        dt_fim = '2021-12-31'
+    elif opt_anos == 2022:
+        dt_init = '2022-01-01'
+        dt_fim = '2022-12-31'
+    elif opt_anos == 2023:
+        dt_init = '2023-01-01'
+        dt_fim = '2023-12-31' 
+    elif opt_anos == 2024:
+        dt_init = '2024-01-01'
+        dt_fim = '2024-12-31' 
+    elif opt_anos == 2025:
+        dt_init = '2025-01-01'
+        dt_fim = '2025-12-31'
+    elif opt_anos == 2026:
+        dt_init = '2026-01-01'
+        dt_fim = '2026-12-31'                   
+    cod = st.sidebar.number_input("Insira o código da empresa",step=0,width=300)                                            
 
 nome_empresa = retorna_nome_empresa(cod)
 try:
@@ -226,5 +219,61 @@ try:
     with col_faturamento3:    
         st.altair_chart(altair_chart=(alt.Chart(grafico_linha).mark_line(color="#Fad32b",interpolate="linear",
                                                                         line={'color':'gray'}).encode(x="Competência", y="Faturamento")))
+        
+    st.divider()
+    st.header("RESULTADO POR EMPRESA")
+    st.header("Custo")
+    tempo_agrupado_empresa = pd.DataFrame(columns=["Tempo gasto"])
+    tempo_agrupado_empresa["Tempo gasto"] = (tempo_gasto_merged.groupby("Usuário")["Tempo gasto"].sum().div(60)).sort_values(ascending=False)
+    tempo_agrupado_empresa.reset_index(inplace=True)
+    col_sal1, col_sal2 = st.columns(2)
+    with col_sal1:
+        eduardo = st.number_input("Eduardo")
+        gabi = st.number_input("Gabi")
+        adri = st.number_input("Adri")
+        dani = st.number_input("Dani")
+        josi = st.number_input("Josi")
+        izabel = st.number_input("Izabel")
+    with col_sal2:
+        renan = st.number_input("Renan")
+        andre = st.number_input("André")
+        leticia = st.number_input("Letícia")
+        gio = st.number_input("Giovana")
+        djeuri = st.number_input("Djeuriston")
+        vera = st.number_input("Vera")
+    st.divider()
+    total_de_horas = tempo_agrupado_empresa["Tempo gasto"].sum()
+    custo_eduardo_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='MISTER']['Tempo gasto'].sum()*(eduardo/220)
+    custo_gabi_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='GABI']['Tempo gasto'].sum()*(gabi/220)
+    custo_adri_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='ADRI']['Tempo gasto'].sum()*(adri/220)
+    custo_dani_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='DANI']['Tempo gasto'].sum()*(dani/220)
+    custo_josi_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='JOSI']['Tempo gasto'].sum()*(josi/220)
+    custo_izabel_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='IZABEL']['Tempo gasto'].sum()*(izabel/220)
+    custo_renan_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='RENAN']['Tempo gasto'].sum()*(renan/220)
+    custo_andre_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='ANDRE']['Tempo gasto'].sum()*(andre/220)
+    custo_leticia_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='GCONT']['Tempo gasto'].sum()*(leticia/220)
+    custo_gio_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='GIO']['Tempo gasto'].sum()*(gio/220)
+    custo_djeuri_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='FISCAL']['Tempo gasto'].sum()*(djeuri/220)
+    custo_vera_horas = tempo_agrupado_empresa[tempo_agrupado_empresa['Usuário']=='VERA']['Tempo gasto'].sum()*(vera/220)
+    total_custo = float(custo_eduardo_horas+custo_gabi_horas+custo_adri_horas+custo_dani_horas+custo_josi_horas+custo_izabel_horas+custo_renan_horas+custo_andre_horas+custo_leticia_horas+custo_gio_horas+custo_djeuri_horas+custo_vera_horas)
+    col_res1, col_res2 = st.columns(2)
+    with col_res1:
+        with st.container(border=True):
+            st.header(f'Total de custo por hora: {formata_valor(total_custo)}')
+            receita_hora = (float(valor_honorario_num)/float(total_de_horas))
+            lucro_hora = receita_hora - total_custo
+            st.header(f'Receita por hora: {formata_valor(receita_hora)}')
+            st.header(f'Resultado por hora: {formata_valor(lucro_hora)}')
+    with col_res2:
+        with st.container(border=True):
+            st.header(f'Percentual de resultado: {round((lucro_hora/receita_hora),2)*100}%')
+
+    st.write(f"Bases de Cálculo: ")
+    st.write(f'Honorário: {formata_valor(valor_honorario_num)}')
+    st.write(f'Horas trabalhadas por funcionario:')
+    with st.expander("Funcionários"):
+        st.write(tempo_agrupado_empresa)
+    st.divider()
+
 except Exception as e:
-    st.error(f"Insira o código de uma empresa válida {e}")
+    st.info(f"Insira o código de uma empresa {e}")
