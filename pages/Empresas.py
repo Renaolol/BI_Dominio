@@ -260,7 +260,7 @@ try:
     with col_res1:
         with st.container(border=True):
             st.header(f'Total de custo por hora: {formata_valor(total_custo)}')
-            if opt_anos == 2025:
+            if opt_datas == "Anos":
                 receita_hora = (float(valor_honorario_num*12)/float(total_de_horas))
             else:
                 receita_hora = (float(valor_honorario_num)/float(total_de_horas))
@@ -272,7 +272,7 @@ try:
             st.header(f'Percentual de resultado: {round((lucro_hora/receita_hora),2)*100}%')
 
     st.write(f"Bases de Cálculo: ")
-    if opt_anos == 2025:
+    if opt_datas == "Anos":
         st.write(f'Honorário: {formata_valor(valor_honorario_num*12)}')
     else:
         st.write(f'Honorário: {formata_valor(valor_honorario_num)}')
