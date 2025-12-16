@@ -195,10 +195,9 @@ try:
                     st.write(f'{origem} - {x[0]}')
                 
             st.write(f"Lanctos de Extrato: {contagem_lancto_extrato[0][0]}")    
-
+#Parte do Faturamento
     st.divider()
     col_faturamento1, col_faturamento2,col_faturamento3 = st.columns([0.5,1,2])
-    
     impostos_empresa = retorna_impostos_empresa(cod,dt_init,dt_fim)
     impostos_empresa_list = []
     for x in impostos_empresa:
@@ -220,6 +219,7 @@ try:
         st.altair_chart(altair_chart=(alt.Chart(grafico_linha).mark_line(color="#Fad32b",interpolate="linear",
                                                                         line={'color':'gray'}).encode(x="Competência", y="Faturamento")))
         
+#Parte de Resultados por Hora
     st.divider()
     st.header("RESULTADO POR EMPRESA")
     st.header("Custo")
@@ -260,7 +260,10 @@ try:
     with col_res1:
         with st.container(border=True):
             st.header(f'Total de custo por hora: {formata_valor(total_custo)}')
-            receita_hora = (float(valor_honorario_num)/float(total_de_horas))
+            if opt_anos == 2025:
+                receita_hora = (float(valor_honorario_num*12)/float(total_de_horas))
+            else:
+                receita_hora = (float(valor_honorario_num)/float(total_de_horas))
             lucro_hora = receita_hora - total_custo
             st.header(f'Receita por hora: {formata_valor(receita_hora)}')
             st.header(f'Resultado por hora: {formata_valor(lucro_hora)}')
@@ -269,11 +272,15 @@ try:
             st.header(f'Percentual de resultado: {round((lucro_hora/receita_hora),2)*100}%')
 
     st.write(f"Bases de Cálculo: ")
-    st.write(f'Honorário: {formata_valor(valor_honorario_num)}')
+    if opt_anos == 2025:
+        st.write(f'Honorário: {formata_valor(valor_honorario_num*12)}')
+    else:
+        st.write(f'Honorário: {formata_valor(valor_honorario_num)}')
     st.write(f'Horas trabalhadas por funcionario:')
     with st.expander("Funcionários"):
         st.write(tempo_agrupado_empresa)
     st.divider()
+
 
 except Exception as e:
     st.info(f"Insira o código de uma empresa {e}")
