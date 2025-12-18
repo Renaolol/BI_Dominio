@@ -25,6 +25,7 @@ with col2:
     compt2=st.date_input("Competencia 2",format='DD/MM/YYYY')
     proximas_ferias = retorna_prox_ferias(compt2)
     ferias_list=[]
+    
     for x in proximas_ferias:
         ferias_list.append([x[0],x[1].strftime("%d/%m/%Y"),x[2].strftime("%d/%m/%Y"),x[3],x[4].strftime("%d/%m/%y"),x[5].strftime("%d/%m/%y"),x[6],x[7]]) 
     ferias_df=pd.DataFrame(ferias_list,columns=["Nome","Inicio Gozo","Fim Gozo","Abono?","Inicio Abono","Fim Abono","Empresa","Tipo"])       
