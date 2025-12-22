@@ -12,43 +12,43 @@ def retorna_lanctos(codi_emp,data_lancto):
     cursor = conn.cursor()
     query = """
     SELECT
-		ctlancto.codi_emp,
+		l.codi_emp,
 		geempre.razao_emp,
-		ctlancto.codi_lote,
+		l.codi_lote,
 		efentradas.nume_ent,
-		ctlancto.data_lan,
-		ctlancto.vlor_lan,
-		ctlancto.cdeb_lan,
+		l.data_lan,
+		l.vlor_lan,
+		l.cdeb_lan,
 		cdeb_ctcontas.nome_cta AS cdeb_nome_cta,
-		ctlancto.ccre_lan,
+		l.ccre_lan,
 		ccre_ctcontas.nome_cta AS ccre_nome_cta,
-		ctlancto.chis_lan,
-		ctlancto.codi_usu,
-		ctlancto.orig_lan,
-		ctlancto.origem_reg
+		l.chis_lan,
+		l.codi_usu,
+		l.orig_lan,
+		l.origem_reg
     FROM
 		bethadba.ctlancto
 		LEFT JOIN
 		bethadba.efentradas_lancto
-		ON ctlancto.codi_emp = efentradas_lancto.codi_emp
-		AND ctlancto.nume_lan = efentradas_lancto.nume_lan
+		ON l.codi_emp = efentradas_lancto.codi_emp
+		AND l.nume_lan = efentradas_lancto.nume_lan
 		LEFT JOIN
 		bethadba.efentradas
 		ON efentradas_lancto.codi_emp = efentradas.codi_emp
 		AND efentradas_lancto.codi_ent = efentradas.codi_ent
 		LEFT JOIN
 		bethadba.geempre
-		ON ctlancto.codi_emp = geempre.codi_emp
+		ON l.codi_emp = geempre.codi_emp
 		LEFT JOIN
 		bethadba.ctcontas AS cdeb_ctcontas
-		ON ctlancto.cdeb_lan = cdeb_ctcontas.codi_cta
-		AND ctlancto.codi_emp = cdeb_ctcontas.codi_emp
+		ON l.cdeb_lan = cdeb_ctcontas.codi_cta
+		AND l.codi_emp = cdeb_ctcontas.codi_emp
 		LEFT JOIN
 		bethadba.ctcontas AS ccre_ctcontas
-		ON ctlancto.ccre_lan = ccre_ctcontas.codi_cta
-		AND ctlancto.codi_emp = ccre_ctcontas.codi_emp
+		ON l.ccre_lan = ccre_ctcontas.codi_cta
+		AND l.codi_emp = ccre_ctcontas.codi_emp
     WHERE
-        ctlancto.codi_emp = ? AND ctlancto.data_lan >=?
+        l.codi_emp = ? AND l.data_lan >=?
             """
     cursor.execute(query, (codi_emp,data_lancto))
     lanctos = cursor.fetchall()
@@ -565,6 +565,38 @@ def retorna_contagem_tipo_lancto(cod, data_inicial,data_final):
     conn.close()
     return resultado
 
+def retorna_lancto_tipo(cod, data_inicial,data_final,tipo):
+    conn = conecta_odbc()
+    cursor = conn.cursor()
+    query = """
+        SELECT 
+            l.data_lan,
+            l.vlor_lan,
+            d.nome_cta as conta_debito,
+            c.nome_cta as conta_credito,
+            l.codi_his,
+            l.chis_lan,
+            l.codi_usu,
+            l.orig_lan,
+            l.codi_lote
+        FROM 
+            bethadba.ctlancto l
+        LEFT JOIN
+            bethadba.ctcontas d
+        ON
+            l.codi_emp = d.codi_emp AND d.codi_cta = l.cdeb_lan
+        LEFT JOIN
+            bethadba.ctcontas c
+        ON
+            l.codi_emp = c.codi_emp AND c.codi_cta = l.ccre_lan
+        WHERE
+            l.codi_emp = ? AND l.data_lan >=? AND l.data_lan <=? AND l.orig_lan = ?            
+"""
+    cursor.execute(query,(cod, data_inicial,data_final,tipo))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
 def retorna_lancto_extrato(cod, data_inicial,data_final):
     conn=conecta_odbc()
     cursor=conn.cursor()
@@ -618,3 +650,12 @@ def retorna_tempo_empresa_geral(data_inicial, data_final):
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
+def retorna_codigos_empresas():
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT CODIGO, NOME FROM bethadba.PRVCLIENTES WHERE SITUACAO = 'A'            """
+    cursor.execute(query)
+    empresa = cursor.fetchall()
+    conn.close()
+    return empresa 
