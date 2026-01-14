@@ -659,3 +659,20 @@ def retorna_codigos_empresas():
     empresa = cursor.fetchall()
     conn.close()
     return empresa 
+
+def retorna_faturamento_simples(cod, data_inicial, data_final):
+    conn = conecta_odbc()
+    cursor=conn.cursor()
+    query='''
+        SELECT SUM(bcal_sim), SUM(sdev_sim),((SUM(sdev_sim)/SUM(bcal_sim))*100),data_sim
+        FROM bethadba.efsdoimp
+        WHERE codi_emp = ? AND data_sim >= ? AND data_sim <= ? and codi_imp = '44'
+        GROUP BY data_sim
+        '''
+    
+    cursor.execute(query,(cod,data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+def formata_porcentagem(valor):
+    return f'{valor:,.2f} %'

@@ -5,7 +5,7 @@ from dependencies import *
 import datetime
 
 st.title("B.I Contábil")
-st.header("Dev. Renan")
+
 st.divider()
 dt_init = st.sidebar.date_input("Insira a data inicial",format="DD/MM/YYYY",value=(datetime.date.today() - datetime.timedelta(60)),width=300)
 dt_fim = st.sidebar.date_input("Insira a data final",width=300,format="DD/MM/YYYY")
