@@ -198,7 +198,10 @@ if login == "Vera" and senha == "VeraGcont":
                             origem = "Honorários"
                         st.write(f'{origem} - {x[0]}')
                     
-                st.write(f"Lanctos de Extrato: {contagem_lancto_extrato[0][0]}")    
+                st.write(f"Lanctos de Extrato: {contagem_lancto_extrato[0][0]}")  
+        st.divider()
+        st.header(f"Total de Lançamentos  --------- {(contagem_lancto_contabil[0][0]+contagem_notas_servico_list[0][0]+
+                                          contagem_notas_saida_list[0][0]+contagem_notas_entrada_list[0][0]):,.0f}".replace(",","."))
     #Parte do Faturamento
         st.divider()
         col_faturamento1, col_faturamento2,col_faturamento3 = st.columns([0.5,1,2])
