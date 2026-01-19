@@ -9,7 +9,7 @@ st.title("Empresas")
 login = st.text_input("Login")
 senha = st.text_input("Senha")
 
-if login == "" and senha == "":
+if login == "Vera" and senha == "VeraGcont":
     opt_datas = st.sidebar.radio("Selecione como deseja filtrar as datas", options=["Anos","Períodos"],horizontal=True)
     if opt_datas == "Períodos":
         dt_init = st.sidebar.date_input("Insira a data inicial",format="DD/MM/YYYY",value=(datetime.date.today() - datetime.timedelta(60)),width=300)
