@@ -57,7 +57,7 @@ with col1:
                         else
                         alt.Chart(faturamento_df)
                             .mark_line(point=True,interpolate="monotone",color=cor_primaria,)
-                            .encode(x="Competência",y="Aliquota Ef float",tooltip=["Faturamento","Impostos","Aliquota EF"])    )
+                            .encode(x="Competência",y="Aliquota Ef float",tooltip=["Faturamento","Impostos","Aliquota EF"]))
 with col2:
     with st.container(border=True):
         st.altair_chart(alt.Chart(faturamento_df)

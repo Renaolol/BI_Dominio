@@ -674,5 +674,6 @@ def retorna_faturamento_simples(cod, data_inicial, data_final):
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
 def formata_porcentagem(valor):
     return f'{valor:,.2f} %'
