@@ -9,7 +9,7 @@ st.title("Empresas")
 login = st.text_input("Login")
 senha = st.text_input("Senha")
 
-if login == "Vera" and senha == "VeraGcont":
+if login == "" and senha == "":
     opt_datas = st.sidebar.radio("Selecione como deseja filtrar as datas", options=["Anos","Períodos"],horizontal=True)
     if opt_datas == "Períodos":
         dt_init = st.sidebar.date_input("Insira a data inicial",format="DD/MM/YYYY",value=(datetime.date.today() - datetime.timedelta(60)),width=300)
@@ -219,10 +219,43 @@ if login == "Vera" and senha == "VeraGcont":
         grafico_linha["Faturamento"] = pd.to_numeric(grafico_linha["Faturamento"])
         with col_faturamento2:
             st.write(valores_impostos_df[["Competência","Faturamento"]])
-        with col_faturamento3:    
-            st.altair_chart(altair_chart=(alt.Chart(grafico_linha).mark_line(color="#Fad32b",interpolate="linear",
-                                                                            line={'color':'gray'}).encode(x="Competência", y="Faturamento")))
-            
+        with col_faturamento3:   
+            #COMPARATIVO ENTRE ANOS 
+            opt_comparativo = st.radio("Selecione o ano para comparar!", options=[2021,2022,2023,2024,2025,2026],horizontal=True,index=4)
+            if opt_comparativo == 2021:
+                dt_init_comparativo = '2021-01-01'
+                dt_fim_comparativo = '2021-12-31'
+            elif opt_comparativo == 2022:
+                dt_init_comparativo = '2022-01-01'
+                dt_fim_comparativo = '2022-12-31'
+            elif opt_comparativo == 2023:
+                dt_init_comparativo = '2023-01-01'
+                dt_fim_comparativo = '2023-12-31' 
+            elif opt_comparativo == 2024:
+                dt_init_comparativo = '2024-01-01'
+                dt_fim_comparativo = '2024-12-31' 
+            elif opt_comparativo == 2025:
+                dt_init_comparativo = '2025-01-01'
+                dt_fim_comparativo = '2025-12-31'
+            elif opt_comparativo == 2026:
+                dt_init_comparativo = '2026-01-01'
+                dt_fim_comparativo = '2026-12-31' 
+            comparativo = retorna_impostos_empresa(cod,dt_init_comparativo,dt_fim_comparativo)
+            comparativo_list = []
+            for x in impostos_empresa:
+                comparativo_list.append(x[0])     
+            valores_impostos_comparativo = retorna_debito_credito_imposto(cod,dt_init_comparativo,dt_fim_comparativo,opt_imposto)
+            valores_impostos_comparativo_list = []
+            for x in valores_impostos_comparativo:
+                valores_impostos_comparativo_list.append([x[0],x[1],x[2],x[3],x[4]])
+            valores_impostos_df_comparativo = pd.DataFrame(valores_impostos_comparativo_list,columns=["Valor Débito","Valor Crédito","Competência","Vlr Saídas","Vlr Serviços"])
+            valores_impostos_df_comparativo["Faturamento"] = valores_impostos_df_comparativo["Vlr Saídas"] + valores_impostos_df_comparativo["Vlr Serviços"]
+            faturamento_comparado = valores_impostos_df_comparativo["Faturamento"].sum()
+            faturamento_total =  valores_impostos_df["Faturamento"].sum()
+            evolucao = round(((faturamento_total/faturamento_comparado)-1)*100,4)
+            st.metric("Total de Faturamento",formata_valor(faturamento_total))
+            st.metric("Faturamento ano comparado",formata_valor(faturamento_comparado))
+            st.metric("Evolução",formata_porcentagem(evolucao))
     #Parte de Resultados por Hora
         st.divider()
         st.header("RESULTADO POR EMPRESA")
