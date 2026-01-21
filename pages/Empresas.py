@@ -222,7 +222,7 @@ if login == "Vera" and senha == "VeraGcont":
             st.write(valores_impostos_df_visual[["Competência","Faturamento"]])
         with col_faturamento3:   
             #COMPARATIVO ENTRE ANOS 
-            opt_comparativo = st.radio("Selecione o ano para comparar!", options=[2021,2022,2023,2024,2025,2026],horizontal=True,index=4)
+            opt_comparativo = st.radio("Selecione o ano para comparar!", options=[2021,2022,2023,2024,2025,2026],horizontal=True,index=3)
             if opt_comparativo == 2021:
                 dt_init_comparativo = '2021-01-01'
                 dt_fim_comparativo = '2021-12-31'
