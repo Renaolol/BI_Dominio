@@ -425,6 +425,23 @@ def retorna_debito_credito_imposto(cod, data_inicial,data_final, imposto):
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+def retorna_debito_credito_imposto_simples(cod, data_inicial,data_final, imposto):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                s.sdev_sim, s.scre_sim, s.data_sim, s.vcos_sim, s.vcov_sim
+            FROM
+                bethadba.efsdoimp s
+            LEFT JOIN bethadba.EFIMPOSTO i
+            ON
+                s.codi_imp = i.codi_imp AND s.codi_emp = i.codi_emp
+            WHERE
+                s.codi_emp = ? AND s.data_sim >=? AND s.data_sim <=? AND i.codi_imp = ? 
+            """
+    cursor.execute(query,(cod, data_inicial,data_final,imposto))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
 
 def retorna_contagem_entradas(cod, data_inicial,data_final):
     conn=conecta_odbc()

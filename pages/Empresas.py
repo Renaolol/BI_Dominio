@@ -82,7 +82,7 @@ if login == "Vera" and senha == "VeraGcont":
                 except Exception as e:
                     st.info(f"Erro: {e}")
         with col_hono2:
-            with st.container(border=True,horizontal_alignment="center"):
+            with st.container(border=True,horizontal_alignment="center",height=320):
                 with st.expander("Ajustes de Honorários"):
                     st.write(f"Valor do primeiro contrato {formata_valor(valor_honorario[0][5])}")
                     if valor_honorario[0][7] is None:
@@ -92,7 +92,7 @@ if login == "Vera" and senha == "VeraGcont":
                             st.write(f'Reajuste para o valor de {formata_valor(x[7])} em {x[8].strftime("%d/%m/%Y")}')
         col_dados1, col_dados2, col_dados3, col_dados4 = st.columns(4)
         with col_dados1:
-            with st.container(border=True):
+            with st.container(border=True,height=500):
                 st.header("TEMPO")
                 tempo_agrupado = pd.DataFrame(columns=["Tempo gasto"])
                 tempo_agrupado["Tempo gasto"] = (tempo_gasto_merged.groupby("Módulo")["Tempo gasto"].sum()).sort_values(ascending=False)
@@ -100,7 +100,7 @@ if login == "Vera" and senha == "VeraGcont":
 
                 st.write(tempo_agrupado)
         with col_dados2:
-            with st.container(border=True):
+            with st.container(border=True,height=500):
                 st.header("FOLHA")
                 admissoes = retorna_admissoes(cod,dt_init,dt_fim)
                 admissoes_nomes = retorna_nome_admissoes(cod,dt_init,dt_fim)
@@ -121,7 +121,7 @@ if login == "Vera" and senha == "VeraGcont":
                     for x in nomes_funcionarios:
                         st.write(x[0])
         with col_dados3:
-            with st.container(border=True):
+            with st.container(border=True,height=500):
                 st.header("FISCAL")
                 contagem_notas_entrada = retorna_contagem_entradas(cod,dt_init,dt_fim)
                 contagem_notas_entrada_list = []
@@ -151,7 +151,7 @@ if login == "Vera" and senha == "VeraGcont":
                     for x in contagem_acum_servico:
                         st.write(f'{x[1]} -  {x[0]}')         
         with col_dados4:
-            with st.container(border=True):
+            with st.container(border=True,height=500):
                 st.header("CONTABIL")
                 contagem_lancto_contabil = retorna_contagem_lanctos_contabil(cod,dt_init,dt_fim)
                 st.write(f"Contagem de lançamentos Contabeis : {contagem_lancto_contabil[0][0]}")
@@ -197,14 +197,12 @@ if login == "Vera" and senha == "VeraGcont":
                         else:
                             origem = "Honorários"
                         st.write(f'{origem} - {x[0]}')
-                    
-                st.write(f"Lanctos de Extrato: {contagem_lancto_extrato[0][0]}")  
         st.divider()
         st.header(f"Total de Lançamentos  --------- {(contagem_lancto_contabil[0][0]+contagem_notas_servico_list[0][0]+
                                           contagem_notas_saida_list[0][0]+contagem_notas_entrada_list[0][0]):,.0f}".replace(",","."))
     #Parte do Faturamento
         st.divider()
-        col_faturamento1, col_faturamento2,col_faturamento3 = st.columns([0.5,1,2])
+        col_faturamento1, col_faturamento2,col_faturamento3 = st.columns([0.5,1.5,1])
         impostos_empresa = retorna_impostos_empresa(cod,dt_init,dt_fim)
         impostos_empresa_list = []
         for x in impostos_empresa:
@@ -217,11 +215,11 @@ if login == "Vera" and senha == "VeraGcont":
             valores_impostos_list.append([x[0],x[1],x[2],x[3],x[4]])
         valores_impostos_df = pd.DataFrame(valores_impostos_list,columns=["Valor Débito","Valor Crédito","Competência","Vlr Saídas","Vlr Serviços"])
         valores_impostos_df["Faturamento"] = valores_impostos_df["Vlr Saídas"] + valores_impostos_df["Vlr Serviços"]
-        grafico_linha = pd.DataFrame(columns=["Faturamento"])  
-        grafico_linha= valores_impostos_df.groupby("Competência")["Faturamento"].sum().reset_index(name="Faturamento") 
-        grafico_linha["Faturamento"] = pd.to_numeric(grafico_linha["Faturamento"])
+        valores_impostos_df_visual = valores_impostos_df.copy()
+        valores_impostos_df_visual["Faturamento"] = valores_impostos_df_visual["Faturamento"].map(formata_valor)
+        valores_impostos_df_visual["Competência"] = pd.to_datetime(valores_impostos_df_visual["Competência"]).dt.strftime("%m/%Y")
         with col_faturamento2:
-            st.write(valores_impostos_df[["Competência","Faturamento"]])
+            st.write(valores_impostos_df_visual[["Competência","Faturamento"]])
         with col_faturamento3:   
             #COMPARATIVO ENTRE ANOS 
             opt_comparativo = st.radio("Selecione o ano para comparar!", options=[2021,2022,2023,2024,2025,2026],horizontal=True,index=4)
@@ -256,6 +254,7 @@ if login == "Vera" and senha == "VeraGcont":
             faturamento_comparado = valores_impostos_df_comparativo["Faturamento"].sum()
             faturamento_total =  valores_impostos_df["Faturamento"].sum()
             evolucao = round(((faturamento_total/faturamento_comparado)-1)*100,4)
+            #Demonstração dos valores comparativos.
             st.metric("Total de Faturamento",formata_valor(faturamento_total))
             st.metric("Faturamento ano comparado",formata_valor(faturamento_comparado))
             st.metric("Evolução",formata_porcentagem(evolucao))
