@@ -5,7 +5,7 @@ from dependencies import *
 import pandas as pd
 
 st.set_page_config(layout="wide")
-st.title("B.I | Alíquotas do Simples nacional")
+st.title("B.I | Alíquotas do Simples Nacional")
 #Sidebar
 opt_datas = st.sidebar.radio("Selecione como deseja filtrar as datas", options=["Anos","Períodos"],horizontal=True)
 cod = st.sidebar.number_input("Insira o código da empresa",step=0,width=300)
