@@ -425,6 +425,7 @@ def retorna_debito_credito_imposto(cod, data_inicial,data_final, imposto):
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
 def retorna_debito_credito_imposto_simples(cod, data_inicial,data_final, imposto):
     conn=conecta_odbc()
     cursor=conn.cursor()
