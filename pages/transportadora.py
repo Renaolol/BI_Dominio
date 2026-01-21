@@ -4,8 +4,6 @@ import datetime
 import streamlit as st
 import altair as alt
 from time import sleep
-import plotly.express as px
-import geopandas as gpd
 from dependencies import formata_valor
 st.set_page_config(layout="wide")
 
