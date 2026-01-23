@@ -4,9 +4,8 @@ import datetime
 import streamlit as st
 import altair as alt
 from time import sleep
-from dependencies import formata_valor
+from dependencies import *
 st.set_page_config(layout="wide")
-
 
 codigo = st.session_state.get("empresa_codigo")
 nome = st.session_state.get("name")
@@ -22,47 +21,8 @@ except Exception:
     # se o banco aceita STRING, você pode manter como está e usar direto
     codigo_int = codigo  # fallback
 
-conexao = ("DSN=ContabilPBI;UID=PBI;PWD=Pbi")
-
-
 ano = st.radio("Selecione o ano!",options=["2026","2027-2028","2029","2030","2031","2032","2033"],horizontal=True)
 abadespesas,aba1=st.tabs(["Despesas","Analise"])
-#Função para buscar a contagem de produtos nas notas
-def get_cte(codigo,data_inicio,data_final):
-    conn = pyodbc.connect(conexao)
-    cursor = conn.cursor()
-    query = """
-        SELECT
-            c.dsai_sai,
-            c.nume_sai,
-            c.codi_nat,
-            m.nome_municipio,
-            c.sigl_est,
-            md.nome_municipio,
-            e.sigla_uf,
-            c.PEDAGIO_SAI,
-            c.vprod_sai,
-            c.vcon_sai
-        FROM bethadba.efsaidas AS c
-        JOIN bethadba.gemunicipio AS m
-        ON m.codigo_municipio = c.codigo_municipio
-        JOIN bethadba.gemunicipio AS md
-        ON md.codigo_municipio = c.CODIGO_MUNICIPIO_DESTINO
-        JOIN bethadba.geestado AS e
-        ON md.codigo_uf = e.codigo_uf  
-        WHERE c.codi_esp = 38
-        AND c.codi_emp = ?
-        AND dsai_sai BETWEEN ? AND ?
-            """
-    cursor.execute(query, (codigo,data_inicio, data_final, ))
-    rows = cursor.fetchall()
-    lista=[]
-    for row in rows:
-        lista.append((row[0], row[1], row[2], row[3],row[4], row[5], row[6], row[7], row[8], row[9]))
-
-    cursor.close()
-    conn.close()       
-    return lista
 
 data_inicio = st.sidebar.date_input("Insira a data Incial",value='2025-01-01',format="DD/MM/YYYY", width=150)   
 data_final = st.sidebar.date_input("Insira a data Final",value='2025-12-31',format="DD/MM/YYYY", width=150)

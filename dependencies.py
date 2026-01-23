@@ -684,7 +684,7 @@ def retorna_faturamento_simples(cod, data_inicial, data_final):
     query='''
         SELECT SUM(bcal_sim), SUM(sdev_sim),((SUM(sdev_sim)/SUM(bcal_sim))*100),data_sim
         FROM bethadba.efsdoimp
-        WHERE codi_emp = ? AND data_sim >= ? AND data_sim <= ? and codi_imp = '44'
+        WHERE codi_emp = ? AND data_sim >= ? AND data_sim <= ? and codi_imp = '44' and bcal_sim > 0
         GROUP BY data_sim
         '''
     
@@ -695,3 +695,38 @@ def retorna_faturamento_simples(cod, data_inicial, data_final):
 
 def formata_porcentagem(valor):
     return f'{valor:,.2f} %'
+def get_cte(codigo,data_inicio,data_final):
+    conn = pyodbc.connect(CONEXAO)
+    cursor = conn.cursor()
+    query = """
+        SELECT
+            c.dsai_sai,
+            c.nume_sai,
+            c.codi_nat,
+            m.nome_municipio,
+            c.sigl_est,
+            md.nome_municipio,
+            e.sigla_uf,
+            c.PEDAGIO_SAI,
+            c.vprod_sai,
+            c.vcon_sai
+        FROM bethadba.efsaidas AS c
+        JOIN bethadba.gemunicipio AS m
+        ON m.codigo_municipio = c.codigo_municipio
+        JOIN bethadba.gemunicipio AS md
+        ON md.codigo_municipio = c.CODIGO_MUNICIPIO_DESTINO
+        JOIN bethadba.geestado AS e
+        ON md.codigo_uf = e.codigo_uf  
+        WHERE c.codi_esp = 38
+        AND c.codi_emp = ?
+        AND dsai_sai BETWEEN ? AND ?
+            """
+    cursor.execute(query, (codigo,data_inicio, data_final, ))
+    rows = cursor.fetchall()
+    lista=[]
+    for row in rows:
+        lista.append((row[0], row[1], row[2], row[3],row[4], row[5], row[6], row[7], row[8], row[9]))
+
+    cursor.close()
+    conn.close()       
+    return lista
