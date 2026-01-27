@@ -6,8 +6,7 @@ import pandas as pd
 
 st.set_page_config(layout="wide")
 st.title("B.I | Alíquotas do Simples Nacional")
-#Sidebar
-opt_datas = st.sidebar.radio("Selecione como deseja filtrar as datas", options=["Anos","Períodos"],horizontal=True)
+#Aqui vão estar os controles no sidebar (barra lateral), alguns dos controles disponíveis são: codigo da empresa, e opções de anos
 cod = st.sidebar.number_input("Insira o código da empresa",step=0,width=300)
 opt_anos = st.sidebar.radio("Anos:",options=[2021,2022,2023,2024,2025,2026],horizontal=True,index=4)
 if opt_anos == 2021:
@@ -29,9 +28,10 @@ elif opt_anos == 2026:
     dt_init = '2026-01-01'
     dt_fim = '2026-12-31' 
 
-
+#Aqui a ideia é permitir que o gráfico seja alterado conforme a necessidade (Tirar rótulos, aumentar largura das colunas, alterar cores)
 st.header("Defina as propriedades dos gráficos")
 with st.container(border=True):
+    #Prop vem de propriedades, logo prop_col1 significa coluna 1 de propriedades, e assim por diante
     prop_col1,prop_col2,prop_col3,prop_col4,prop_col5 = st.columns(5)
     with prop_col1:
         largura = st.slider("Defina a largura das barras",1,100,value=35)
@@ -47,7 +47,7 @@ st.divider()
 faturamento=retorna_faturamento_simples(cod,dt_init,dt_fim)
 faturamento_list = [[x[0],x[1],x[2],x[3]] for x in faturamento]
 faturamento_df = pd.DataFrame(faturamento_list,columns=["Faturamento","Impostos","Aliquota Ef float","Competência"])
-
+#aliquota ef refere-se a Aliquota Efetiva
 #aliquota ef formatada para float
 faturamento_df["Aliquota Ef float"]=faturamento_df["Aliquota Ef float"].apply(float)
 
@@ -95,6 +95,8 @@ with col2:
 st.divider()
 
 try:
+    #Aqui serão montados dois DataFrames, um do ano atual e um do ano comparado
+    #ao final serão demonstrados o comparativo entre o somatório do faturamento de ambos os anos
     #COMPARATIVO ENTRE ANOS 
     st.title("Comparativo entre Anos")
     with st.container(border=True):
@@ -103,6 +105,7 @@ try:
         for x in valores_impostos:
             valores_impostos_list.append([x[0],x[1],x[2],x[3]])
         valores_impostos_df = pd.DataFrame(valores_impostos_list,columns=["Faturamento","Imposto","Aliquota EF","Competência"])
+        #opt_comparativo é para selecionar o ano que vai ser comparado
         opt_comparativo = st.radio("Selecione o ano para comparar!", options=[2021,2022,2023,2024,2025,2026],horizontal=True,index=3)
         if opt_comparativo == 2021:
             dt_init_comparativo = '2021-01-01'
