@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from dependencies import *
 import datetime
-from datetime import timedelta, time
 import altair as alt
 st.set_page_config(layout="wide")
 st.title("Empresas")
