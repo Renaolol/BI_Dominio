@@ -98,12 +98,11 @@ try:
     #COMPARATIVO ENTRE ANOS 
     st.title("Comparativo entre Anos")
     with st.container(border=True):
-        valores_impostos = retorna_debito_credito_imposto_simples(cod,dt_init,dt_fim,44)
+        valores_impostos = retorna_faturamento_simples(cod,dt_init,dt_fim)
         valores_impostos_list = []
         for x in valores_impostos:
-            valores_impostos_list.append([x[0],x[1],x[2],x[3],x[4]])
-        valores_impostos_df = pd.DataFrame(valores_impostos_list,columns=["Valor Débito","Valor Crédito","Competência","Vlr Saídas","Vlr Serviços"])
-        valores_impostos_df["Faturamento"] = valores_impostos_df["Vlr Saídas"] + valores_impostos_df["Vlr Serviços"]  
+            valores_impostos_list.append([x[0],x[1],x[2],x[3]])
+        valores_impostos_df = pd.DataFrame(valores_impostos_list,columns=["Faturamento","Imposto","Aliquota EF","Competência"])
         opt_comparativo = st.radio("Selecione o ano para comparar!", options=[2021,2022,2023,2024,2025,2026],horizontal=True,index=3)
         if opt_comparativo == 2021:
             dt_init_comparativo = '2021-01-01'
@@ -123,12 +122,11 @@ try:
         elif opt_comparativo == 2026:
             dt_init_comparativo = '2026-01-01'
             dt_fim_comparativo = '2026-12-31' 
-        valores_impostos_comparativo = retorna_debito_credito_imposto_simples(cod,dt_init_comparativo,dt_fim_comparativo,44)
+        valores_impostos_comparativo = retorna_faturamento_simples(cod,dt_init_comparativo,dt_fim_comparativo)
         valores_impostos_comparativo_list = []
         for x in valores_impostos_comparativo:
-            valores_impostos_comparativo_list.append([x[0],x[1],x[2],x[3],x[4]])
-        valores_impostos_df_comparativo = pd.DataFrame(valores_impostos_comparativo_list,columns=["Valor Débito","Valor Crédito","Competência","Vlr Saídas","Vlr Serviços"])
-        valores_impostos_df_comparativo["Faturamento"] = valores_impostos_df_comparativo["Vlr Saídas"] + valores_impostos_df_comparativo["Vlr Serviços"]
+            valores_impostos_comparativo_list.append([x[0],x[1],x[2],x[3]])
+        valores_impostos_df_comparativo = pd.DataFrame(valores_impostos_comparativo_list,columns=["Faturamento","Imposto","Aliquota EF","Competência"])
         faturamento_comparado = valores_impostos_df_comparativo["Faturamento"].sum()
         faturamento_total =  valores_impostos_df["Faturamento"].sum()
         evolucao = round(((faturamento_total/faturamento_comparado)-1)*100,4)

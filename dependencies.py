@@ -695,6 +695,7 @@ def retorna_faturamento_simples(cod, data_inicial, data_final):
 
 def formata_porcentagem(valor):
     return f'{valor:,.2f} %'
+
 def get_cte(codigo,data_inicio,data_final):
     conn = pyodbc.connect(CONEXAO)
     cursor = conn.cursor()
