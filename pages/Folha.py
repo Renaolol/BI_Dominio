@@ -38,7 +38,7 @@ st.divider()
 
 st.subheader("Vencimento das Férias")
 hoje = datetime.date.today()
-prox_dois_meses = hoje + dateutil.relativedelta.relativedelta(months=2)
+prox_dois_meses = hoje + dateutil.relativedelta.relativedelta(months=3)
 ferias = vencimento_ferias(hoje,prox_dois_meses)
 ferias_list = []
 for x in ferias:
