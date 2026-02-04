@@ -2,6 +2,7 @@ import pyodbc
 import pandas as pd
 from pprint import pprint
 from datetime import timedelta, time, date, datetime
+import streamlit as st
 CONEXAO = "DSN=ContabilPBI;UID=PBI;PWD=Pbi"
 
 def conecta_odbc():
@@ -731,3 +732,80 @@ def get_cte(codigo,data_inicio,data_final):
     cursor.close()
     conn.close()       
     return lista
+
+@st.cache_data()
+def retorna_admissoes_todas_empresas( data_inicial, data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                COUNT(nome)
+            FROM
+                bethadba.foempregados
+            WHERE admissao >= ? AND admissao <= ?
+            """
+    cursor.execute(query,( data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+   
+    return resultado
+
+@st.cache_data()
+def retorna_demitidos_todas_empresas(data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                COUNT(e.nome)
+            FROM
+                bethadba.foempregados e
+            LEFT JOIN 
+                bethadba.forescisoes r
+            ON
+                e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
+            WHERE 
+                r.demissao >= ? and r.demissao <= ?
+            """
+    cursor.execute(query,( data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+@st.cache_data()
+def retorna_demitidos_com_data(data_inicial,data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                COUNT(e.nome), r.demissao
+            FROM
+                bethadba.foempregados e
+            LEFT JOIN 
+                bethadba.forescisoes r
+            ON
+                e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
+            WHERE
+                r.demissao >= ? and r.demissao <= ?
+            GROUP BY
+                r.demissao
+            """
+    cursor.execute(query,( data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+@st.cache_data()
+def retorna_admissoes_com_data( data_inicial, data_final):
+    conn=conecta_odbc()
+    cursor=conn.cursor()
+    query="""SELECT
+                COUNT(nome), admissao
+            FROM
+                bethadba.foempregados
+            WHERE
+                admissao >= ? AND admissao <= ?
+            GROUP BY
+                admissao
+            """
+    cursor.execute(query,( data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+   
+    return resultado

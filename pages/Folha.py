@@ -1,8 +1,11 @@
 import streamlit as st
-from dependencies import retorna_menor_salario_min, retorna_prox_ferias, vencimento_ferias
+from dependencies import *
 import pandas as pd
 import datetime
 import dateutil
+import altair as alt
+import locale
+
 def formata_valor(valor):
     return f"R$ {valor:,.2f}".replace(',','X').replace('.',',').replace('X','.')
 st.set_page_config(layout="wide")
@@ -43,3 +46,47 @@ for x in ferias:
 ferias_df = pd.DataFrame(ferias_list,columns=["Empresa","Funcionário","Data Limite"])    
 st.write(ferias_df)
 
+st.divider()
+with st.container(border=True,horizontal=True,gap='medium'):
+    data_init= st.date_input("Selecione a Data Inicial",format="DD/MM/YYYY",width=150)
+    data_fin = st.date_input("Selecione a Data Final",format="DD/MM/YYYY",width=150)
+    admitidos = retorna_admissoes_todas_empresas(data_init,data_fin)
+    demitidos = retorna_demitidos_todas_empresas(data_init,data_fin)
+    st.metric("Contagem de admissões",admitidos[0][0],width=200)
+    st.metric("Contagem de demissões",demitidos[0][0],width=200)
+    st.metric("Somatório Geral",(admitidos[0][0]+demitidos[0][0]))
+
+#Busca no banco de dados
+demitidos_base = retorna_demitidos_com_data(data_init,data_fin)
+admitidos_base = retorna_admissoes_com_data(data_init,data_fin)
+
+#Formação do primeiro DATAFRAME (Demitidos)
+demitidos_lista=[]
+for x in demitidos_base:
+    demitidos_lista.append([x[0],x[1].strftime("%m/%Y")])
+demitidos_df = pd.DataFrame(demitidos_lista,columns=["Demissoes","Date"])
+demitidos_mes = demitidos_df.groupby("Date")["Demissoes"].sum().reset_index()
+demitidos_mes["Date"]=pd.to_datetime(demitidos_mes["Date"])
+
+#Formação do segundo DATAFRAME (Admitidos)
+admitidos_lista=[]
+for x in admitidos_base:
+    admitidos_lista.append([x[0],x[1].strftime("%m/%Y")])
+admitidos_df = pd.DataFrame(admitidos_lista,columns=["Admissoes","Date"])
+admitidos_mes = admitidos_df.groupby("Date")["Admissoes"].sum().reset_index()
+admitidos_mes["Date"]=pd.to_datetime(admitidos_mes["Date"])
+
+
+#Visulalização em um gráfico de Linhas combinado
+st.altair_chart(alt.Chart(demitidos_mes)
+                    .mark_line(color="#Fad32b",
+                               point=alt.OverlayMarkDef(filled=True,fill="#9e9e9e"))
+                    .encode(x=alt.X("Date"),
+                            y=alt.Y("Demissoes"))
+                            +
+                alt.Chart(admitidos_mes)
+                    .mark_line(color="#c0c0c0",
+                               point=alt.OverlayMarkDef(filled=True,fill="#9E9E9E"))
+                    .encode(x=alt.X("Date",type="temporal"),
+                            y=alt.Y("Admissoes"))
+                            )
