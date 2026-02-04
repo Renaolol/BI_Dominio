@@ -136,6 +136,8 @@ def vencimento_ferias (competencia_incial, competencia_final):
             e.codi_emp = emp.CODIGO
             WHERE
             f.LIMITE_PARA_GOZO >= ? AND f.LIMITE_PARA_GOZO <=? AND (f.SITUACAO = 1 OR f.SITUACAO = 2) AND emp.SITUACAO != 'I' AND emp.CODIGO <=999
+            ORDER BY
+            f.DATA_FIM
             """
     cursor.execute(query2, (competencia_incial, competencia_final))
     resultado = cursor.fetchall()
