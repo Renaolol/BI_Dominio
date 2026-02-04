@@ -2,7 +2,7 @@ import streamlit as st
 from dependencies import *
 import pandas as pd
 import datetime
-import dateutil
+from dateutil.relativedelta import relativedelta
 import altair as alt
 import locale
 
@@ -30,20 +30,24 @@ with col2:
     ferias_list=[]
     
     for x in proximas_ferias:
-        ferias_list.append([x[0],x[1].strftime("%d/%m/%Y"),x[2].strftime("%d/%m/%Y"),x[3],x[4].strftime("%d/%m/%y"),x[5].strftime("%d/%m/%y"),x[6],x[7]]) 
+        ferias_list.append([x[0],x[1].strftime("%d/%m/%Y"),x[2].strftime("%d/%m/%Y"),x[3],
+                            x[4].strftime("%d/%m/%y"),x[5].strftime("%d/%m/%y"),x[6],x[7]]) 
     ferias_df=pd.DataFrame(ferias_list,columns=["Nome","Inicio Gozo","Fim Gozo","Abono?","Inicio Abono","Fim Abono","Empresa","Tipo"])       
     st.write(ferias_df)
     
 st.divider()
 
-st.subheader("Vencimento das Férias")
+st.subheader("Vencimento das Férias em dobro")
 hoje = datetime.date.today()
-prox_dois_meses = hoje + dateutil.relativedelta.relativedelta(months=3)
-ferias = vencimento_ferias(hoje,prox_dois_meses)
+prox_tres_meses = hoje + relativedelta(months=3)
+ferias = vencimento_ferias(hoje,prox_tres_meses)
 ferias_list = []
 for x in ferias:
-    ferias_list.append([x[1],x[2],x[3].strftime("%d/%m/%Y")])
-ferias_df = pd.DataFrame(ferias_list,columns=["Empresa","Funcionário","Data Limite"])    
+    ferias_list.append([x[1],x[2],x[3].strftime("%d/%m/%Y"),
+                        (x[5]+relativedelta(months=12)).strftime("%d/%m/%Y"),
+                        (x[3]-(x[5]+relativedelta(months=12))).days*(-1)+1])
+ferias_df = pd.DataFrame(ferias_list,columns=["Empresa","Funcionário","Data Limite",
+                                              "Aquisitivo","Dias"])    
 st.write(ferias_df)
 
 st.divider()

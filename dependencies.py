@@ -121,7 +121,7 @@ def vencimento_ferias (competencia_incial, competencia_final):
             """
     query2 = """
             SELECT
-            f.CODI_EMP, emp.NOME, e.nome, f.LIMITE_PARA_GOZO, f.SITUACAO
+            f.CODI_EMP, emp.NOME, e.nome, f.LIMITE_PARA_GOZO, f.SITUACAO, f.DATA_FIM
             FROM
             bethadba.FOFERIAS_AQUISITIVOS f
             LEFT JOIN
