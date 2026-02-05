@@ -80,17 +80,19 @@ admitidos_df = pd.DataFrame(admitidos_lista,columns=["Admissoes","Date"])
 admitidos_mes = admitidos_df.groupby("Date")["Admissoes"].sum().reset_index()
 admitidos_mes["Date"]=pd.to_datetime(admitidos_mes["Date"])
 
-
-#Visulalização em um gráfico de Linhas combinado
-st.altair_chart(alt.Chart(demitidos_mes)
-                    .mark_line(color="#Fad32b",
-                               point=alt.OverlayMarkDef(filled=True,fill="#9e9e9e"))
-                    .encode(x=alt.X("Date"),
-                            y=alt.Y("Demissoes"))
-                            +
-                alt.Chart(admitidos_mes)
-                    .mark_line(color="#c0c0c0",
-                               point=alt.OverlayMarkDef(filled=True,fill="#9E9E9E"))
-                    .encode(x=alt.X("Date",type="temporal"),
-                            y=alt.Y("Admissoes"))
-                            )
+if demitidos_lista == [] and admitidos_lista == []:
+    pass
+else:
+    #Visulalização em um gráfico de Linhas combinado
+    st.altair_chart(alt.Chart(demitidos_mes)
+                        .mark_line(color="#Fad32b",
+                                point=alt.OverlayMarkDef(filled=True,fill="#9e9e9e"))
+                        .encode(x=alt.X("Date"),
+                                y=alt.Y("Demissoes"))
+                                +
+                    alt.Chart(admitidos_mes)
+                        .mark_line(color="#c0c0c0",
+                                point=alt.OverlayMarkDef(filled=True,fill="#9E9E9E"))
+                        .encode(x=alt.X("Date",type="temporal"),
+                                y=alt.Y("Admissoes"))
+                                )
