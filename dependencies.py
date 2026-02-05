@@ -818,7 +818,7 @@ def retorna_ficha_cadastral_admissoes(data_inicial, data_final):
     cursor = conn.cursor()
     query = """
         SELECT 
-            e.nome, e.admissao, e.CODIGO_ESOCIAL, emp.NOME
+            e.nome,e.cpf, e.admissao, e.CODIGO_ESOCIAL, emp.NOME
         FROM 
             bethadba.foempregados e
         LEFT JOIN 
@@ -841,7 +841,7 @@ def retorna_ficha_cadastral_demissoes(data_inicial, data_final):
     cursor = conn.cursor()
     query = """
         SELECT 
-            e.nome, r.demissao, e.CODIGO_ESOCIAL, emp.NOME
+            e.nome,e.cpf, r.demissao, e.CODIGO_ESOCIAL, emp.NOME
         FROM 
             bethadba.foempregados e
         LEFT JOIN 
