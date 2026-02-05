@@ -100,8 +100,17 @@ with st.expander("Admissões e Demissões"):
         
         st.divider()
         st.subheader("Ficha Cadastral Admitidos/Demitidos")
-        ficha_cadastral_adm_list=[]
-        for x in retorna_ficha_cadastral_admissoes(data_init,data_fin):
-            ficha_cadastral_adm_list.append([x[0],x[1].strftime("%d/%m/%Y"),x[2],x[3]])
-        ficha_cadastral_adm_df = pd.DataFrame(ficha_cadastral_adm_list,columns=["Nome","Data Admissão","Cod E-social","Empresa"])
-        st.table(ficha_cadastral_adm_df)
+        with st.expander("Admissões"):
+            ficha_cadastral_adm_list=[]
+            for x in retorna_ficha_cadastral_admissoes(data_init,data_fin):
+                ficha_cadastral_adm_list.append([x[0],x[1].strftime("%d/%m/%Y"),x[2],x[3]])
+            ficha_cadastral_adm_df = pd.DataFrame(ficha_cadastral_adm_list,columns=["Nome","Data Admissão","Cod E-social","Empresa"])
+            st.table(ficha_cadastral_adm_df)
+
+
+        with st.expander("Demissões"):
+            ficha_cadastral_demitidos_list=[]
+            for x in retorna_ficha_cadastral_demissoes(data_init,data_fin):
+                ficha_cadastral_demitidos_list.append([x[0],x[1].strftime("%d/%m/%Y"),x[2],x[3]])
+            ficha_cadastral_demissoes_df = pd.DataFrame(ficha_cadastral_demitidos_list,columns=["Nome","Data Demissão","Cod E-social","Empresa"])
+            st.table(ficha_cadastral_demissoes_df)

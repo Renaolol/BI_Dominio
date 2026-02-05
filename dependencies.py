@@ -834,3 +834,31 @@ def retorna_ficha_cadastral_admissoes(data_inicial, data_final):
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
+@st.cache_data()
+def retorna_ficha_cadastral_demissoes(data_inicial, data_final):
+    conn = conecta_odbc()
+    cursor = conn.cursor()
+    query = """
+        SELECT 
+            e.nome, r.demissao, e.CODIGO_ESOCIAL, emp.NOME
+        FROM 
+            bethadba.foempregados e
+        LEFT JOIN 
+            bethadba.PRVCLIENTES emp
+        ON
+            e.codi_emp = emp.CODIGO
+        LEFT JOIN 
+            bethadba.forescisoes r
+        ON
+            e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
+        WHERE
+            e.codi_emp = emp.CODIGO AND r.demissao >=? AND r.demissao <=?
+        ORDER BY emp.NOME
+        
+        """
+    cursor.execute(query,(data_inicial,data_final))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
