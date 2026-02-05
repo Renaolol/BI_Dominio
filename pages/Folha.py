@@ -5,6 +5,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 import altair as alt
 import locale
+from io import BytesIO
 
 def formata_valor(valor):
     return f"R$ {valor:,.2f}".replace(',','X').replace('.',',').replace('X','.')
@@ -116,3 +117,13 @@ with st.expander("Admissões e Demissões"):
                 ficha_cadastral_demitidos_list.append([x[0],x[1],x[2].strftime("%d/%m/%Y"),x[3],x[4]])
             ficha_cadastral_demissoes_df = pd.DataFrame(ficha_cadastral_demitidos_list,columns=["Nome","CPF","Data Demissão","Cod E-social","Empresa"])
             st.table(ficha_cadastral_demissoes_df)
+        df_merged = pd.concat([ficha_cadastral_adm_df,ficha_cadastral_demissoes_df])
+        buffer = BytesIO()
+        with pd.ExcelWriter(buffer,engine="xlsxwriter") as writer:
+            df_merged.to_excel(writer,sheet_name="funcionarios")
+            writer.close()
+        @st.fragment()
+        def baixa_excel():
+            st.download_button("Baixar Excel",buffer,
+                               file_name="admissoes_e_demissoes.xlsx")
+        baixa_excel()

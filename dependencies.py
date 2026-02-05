@@ -3,6 +3,7 @@ import pandas as pd
 from pprint import pprint
 from datetime import timedelta, time, date, datetime
 import streamlit as st
+from io import BytesIO
 CONEXAO = "DSN=ContabilPBI;UID=PBI;PWD=Pbi"
 
 def conecta_odbc():
