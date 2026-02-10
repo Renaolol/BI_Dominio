@@ -4,7 +4,6 @@ import pandas as pd
 import datetime
 from dateutil.relativedelta import relativedelta
 import altair as alt
-import locale
 from io import BytesIO
 
 def formata_valor(valor):

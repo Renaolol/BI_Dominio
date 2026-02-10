@@ -3,6 +3,7 @@ import pandas as pd
 from pprint import pprint
 from datetime import timedelta, time, date, datetime
 import streamlit as st
+import psycopg2
 from io import BytesIO
 CONEXAO = "DSN=ContabilPBI;UID=PBI;PWD=Pbi"
 
@@ -863,3 +864,49 @@ def retorna_ficha_cadastral_demissoes(data_inicial, data_final):
     conn.close()
     return resultado
 
+def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
+    try:
+        conn = psycopg2.connect("dbname=notas_emitidas user=postgres password=0176")
+        cursor = conn.cursor()
+        query = """
+                INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade)
+                VALUES (%s,%s,%s,%s,%s) 
+                """
+        cursor.execute(query, (date,cod_cliente,emissor,tipo_nota,quantidade))
+        conn.commit()
+        conn.close()
+    except:
+        print("Conexão falhou")
+    return
+
+def retorna_contagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
+    conn = psycopg2.connect("dbname=notas_emitidas user=postgres password=0176")
+    cursor = conn.cursor()
+
+    if tipo == "Por período":
+        query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s"
+        cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
+
+    else:    
+        query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s"
+        cursor.execute(query, (cod_cliente, ))
+
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
+    conn = psycopg2.connect("dbname=notas_emitidas user=postgres password=0176")
+    cursor = conn.cursor()
+
+    if tipo == "Por período":
+        query="SELECT * FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s"
+        cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
+    
+    else:
+        query="SELECT * FROM registros WHERE cod_cliente = %s"
+        cursor.execute(query, (cod_cliente, ))
+
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
