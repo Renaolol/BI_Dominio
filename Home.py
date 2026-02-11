@@ -18,7 +18,7 @@ if pagina == "Controle de Notas":
         with c1:
             date_doc = st.date_input("Selecione a data de emissão",width=250,format="DD/MM/YYYY")
         with c2:
-            user = st.radio("Emissor",["Izabel","Letícia","Josi","André"],horizontal=True)
+            user = st.text_input("Usuário")
         with c3:
             tipo = st.radio("Documento",["NF-e","NFC-e","CT-e","NFS-e"],horizontal=True)
         with c4:
@@ -52,4 +52,4 @@ if pagina == "Controle de Notas":
             listagem_notas.append([registro[0],registro[1].strftime("%d/%m/%Y"),registro[2]
                                    ,registro[3],registro[4],registro[5]])
         df_notas = pd.DataFrame(listagem_notas,columns=["ID","Data","Empresa","Emissor","Tipo","Quantidade"])
-        st.dataframe(df_notas[["Data","Empresa","Emissor","Tipo","Quantidade"]])
+        st.dataframe(df_notas[["Data","Emissor","Tipo","Quantidade"]])

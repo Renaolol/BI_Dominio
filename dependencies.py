@@ -900,13 +900,19 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
     cursor = conn.cursor()
 
     if tipo == "Por período":
-        query="SELECT * FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s"
+        query="SELECT * FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s ORDER BY date"
         cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
     
     else:
-        query="SELECT * FROM registros WHERE cod_cliente = %s"
+        query="SELECT * FROM registros WHERE cod_cliente = %s ORDER BY date"
         cursor.execute(query, (cod_cliente, ))
 
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
+
+
+
+
+
