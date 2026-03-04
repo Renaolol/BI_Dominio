@@ -126,3 +126,60 @@ with st.expander("Admissões e Demissões"):
             st.download_button("Baixar Excel",buffer,
                                file_name="admissoes_e_demissoes.xlsx")
         baixa_excel()
+
+with st.expander("Validação de Salários"):
+    st.subheader("Comparativo de Salário por Competência")
+    st.caption("Competência atual: mês anterior ao mês corrente. Competência anterior: 2 meses atrás.")
+
+    dados_diferenca = retorna_dif_salarios()
+    diferenca_list = []
+    for x in dados_diferenca:
+        competencia_anterior = x[4].strftime("%m/%Y") if x[4] else ""
+        competencia_atual = x[5].strftime("%m/%Y") if x[5] else ""
+        salario_anterior = float(x[6]) if x[6] is not None else 0.0
+        salario_atual = float(x[7]) if x[7] is not None else 0.0
+        diferenca_salario = float(x[8]) if x[8] is not None else 0.0
+
+        linha = [
+            x[0],
+            x[1],
+            x[2],
+            x[3],
+            competencia_anterior,
+            competencia_atual,
+            salario_anterior,
+            salario_atual,
+            diferenca_salario,
+        ]
+        if abs(diferenca_salario) > 1.0:
+            diferenca_list.append(linha)
+
+    diferenca_df = pd.DataFrame(
+        diferenca_list,
+        columns=[
+            "Cod. Empresa",
+            "ID Funcionário",
+            "Funcionário",
+            "Empresa",
+            "Competência Anterior",
+            "Competência Atual",
+            "Salário Anterior",
+            "Salário Atual",
+            "Diferença",
+        ],
+    )
+
+    if diferenca_df.empty:
+        st.info("Nenhuma diferença encontrada")
+    else:
+        st.metric("Qtd. com diferença", len(diferenca_df))
+        st.dataframe(
+            diferenca_df.style.format(
+                {
+                    "Salário Anterior": lambda v: formata_valor(v),
+                    "Salário Atual": lambda v: formata_valor(v),
+                    "Diferença": lambda v: formata_valor(v),
+                }
+            ),
+            use_container_width=True,
+        )

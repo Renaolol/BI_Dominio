@@ -738,7 +738,7 @@ def get_cte(codigo,data_inicio,data_final):
     return lista
 
 @st.cache_data()
-def retorna_admissoes_todas_empresas( data_inicial, data_final):
+def retorna_admissoes_todas_empresas(data_inicial, data_final):
     conn=conecta_odbc()
     cursor=conn.cursor()
     query="""SELECT
@@ -911,8 +911,57 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
     conn.close()
     return resultado
 
+def retorna_dif_salarios():
+    competencia_base = date.today().replace(day=1)
+    competencia_atual_inicio = (competencia_base - timedelta(days=1)).replace(day=1)
+    competencia_anterior_inicio = (competencia_atual_inicio - timedelta(days=1)).replace(day=1)
+    competencia_proximo_mes = competencia_base
 
-
-
-
-
+    conn = conecta_odbc()
+    cursor = conn.cursor()
+    query = """
+        SELECT DISTINCT
+            atual.codi_emp,
+            atual.i_empregados,
+            e.nome,
+            emp.NOME AS empresa,
+            anterior.competencia AS competencia_anterior,
+            atual.competencia AS competencia_atual,
+            anterior.salario AS salario_anterior,
+            atual.salario AS salario_atual,
+            atual.salario - anterior.salario AS diferenca_salario
+        FROM
+            bethadba.foprovisoes anterior
+        JOIN
+            bethadba.foprovisoes atual
+            ON atual.codi_emp = anterior.codi_emp
+            AND atual.i_empregados = anterior.i_empregados
+            AND atual.tipo = 1
+            AND atual.competencia >= ?
+            AND atual.competencia < ?
+        JOIN
+            bethadba.foempregados e
+            ON atual.codi_emp = e.codi_emp
+            AND atual.i_empregados = e.i_empregados
+        JOIN
+            bethadba.PRVCLIENTES emp
+            ON atual.codi_emp = emp.CODIGO
+        WHERE
+            anterior.tipo = 1
+            AND anterior.competencia >= ?
+            AND anterior.competencia < ?
+        ORDER BY
+            e.nome
+    """
+    cursor.execute(
+        query,
+        (
+            competencia_atual_inicio,
+            competencia_proximo_mes,
+            competencia_anterior_inicio,
+            competencia_atual_inicio,
+        ),
+    )
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
