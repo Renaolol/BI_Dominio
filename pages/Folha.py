@@ -31,9 +31,8 @@ with st.expander("Férias"):
         ferias_list=[]
         
         for x in proximas_ferias:
-            ferias_list.append([x[0],x[1].strftime("%d/%m/%Y"),x[2].strftime("%d/%m/%Y"),x[3],
-                                x[4].strftime("%d/%m/%y"),x[5].strftime("%d/%m/%y"),x[6],x[7]]) 
-        ferias_df=pd.DataFrame(ferias_list,columns=["Nome","Inicio Gozo","Fim Gozo","Abono?","Inicio Abono","Fim Abono","Empresa","Tipo"])       
+            ferias_list.append([x[0],x[1].strftime("%d/%m/%Y"),x[2],x[3]]) 
+        ferias_df=pd.DataFrame(ferias_list,columns=["Nome","Fim Aquisitivo","Empresa","Tipo"])       
         st.write(ferias_df)
         
     st.divider()

@@ -2,6 +2,7 @@ import pyodbc
 import pandas as pd
 from pprint import pprint
 from datetime import timedelta, time, date, datetime
+import calendar
 import streamlit as st
 import psycopg2
 from io import BytesIO
@@ -72,18 +73,23 @@ def retorna_menor_salario_min(competencia):
             LEFT JOIN
             bethadba.PRVCLIENTES emp
             ON f.codi_emp = emp.CODIGO
-            WHERE f.salario < 1518 AND f.salario > 0 AND f.competencia >= ? AND f.tipo = 1
+            WHERE f.salario < 1621 AND f.salario > 0 AND f.competencia >= ? AND f.tipo = 1
 			"""
     cursor.execute(query,(competencia))
     resultado = cursor.fetchall()
     conn.close()
     return resultado
 
-def retorna_prox_ferias(competencia):
+def retorna_prox_ferias(competencia:date) -> list :
+    inicio_mes =f"{competencia.year}-{(competencia.month)if len(str(competencia.month))>=2 else ('0'+str(competencia.month))}-01" 
+    ultimo_dia = calendar.monthrange(competencia.year,competencia.month)[1]
+    fim_mes = date(competencia.year,competencia.month,ultimo_dia)
+
+
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
-			SELECT e.nome, f.GOZO_INICIO, f.GOZO_FIM, f.ABONO_PAGA, f.ABONO_INICIO, f.ABONO_FIM, emp.nome,f.TIPO
+			SELECT e.nome,f.FIM_AQUISITIVO, emp.nome,f.TIPO
             FROM 
             bethadba.foempregados e
             LEFT JOIN
@@ -93,9 +99,10 @@ def retorna_prox_ferias(competencia):
             LEFT JOIN
             bethadba.PRVCLIENTES emp
             ON e.codi_emp = emp.CODIGO
-            WHERE f.GOZO_INICIO >= ?
+            WHERE f.FIM_AQUISITIVO >= ? AND f.FIM_AQUISITIVO <=?
+            ORDER BY f.FIM_AQUISITIVO
 			"""
-    cursor.execute(query, (competencia))
+    cursor.execute(query, (inicio_mes, fim_mes))
     resultado = cursor.fetchall()
     conn.close()
     return resultado 
@@ -927,29 +934,48 @@ def retorna_dif_salarios():
             emp.NOME AS empresa,
             anterior.competencia AS competencia_anterior,
             atual.competencia AS competencia_atual,
-            anterior.salario AS salario_anterior,
-            atual.salario AS salario_atual,
-            atual.salario - anterior.salario AS diferenca_salario
+            anterior.valor_total AS salario_anterior,
+            atual.valor_total AS salario_atual,
+            atual.valor_total - anterior.valor_total AS diferenca_salario
         FROM
-            bethadba.foprovisoes anterior
+            (
+                SELECT
+                    p.codi_emp,
+                    p.i_empregados,
+                    p.competencia,
+                    SUM(COALESCE(p.valor, 0)) AS valor_total
+                FROM
+                    bethadba.FOPROVISOES_PERIODOS_VALORES p
+                WHERE
+                    p.competencia >= ?
+                    AND p.competencia < ?
+                GROUP BY
+                    p.codi_emp, p.i_empregados, p.competencia
+            ) AS atual
         JOIN
-            bethadba.foprovisoes atual
+            (
+                SELECT
+                    p.codi_emp,
+                    p.i_empregados,
+                    p.competencia,
+                    SUM(COALESCE(p.valor, 0)) AS valor_total
+                FROM
+                    bethadba.FOPROVISOES_PERIODOS_VALORES p
+                WHERE
+                    p.competencia >= ?
+                    AND p.competencia < ?
+                GROUP BY
+                    p.codi_emp, p.i_empregados, p.competencia
+            ) AS anterior
             ON atual.codi_emp = anterior.codi_emp
             AND atual.i_empregados = anterior.i_empregados
-            AND atual.tipo = 1
-            AND atual.competencia >= ?
-            AND atual.competencia < ?
-        JOIN
+        LEFT JOIN
             bethadba.foempregados e
             ON atual.codi_emp = e.codi_emp
             AND atual.i_empregados = e.i_empregados
-        JOIN
+        LEFT JOIN
             bethadba.PRVCLIENTES emp
             ON atual.codi_emp = emp.CODIGO
-        WHERE
-            anterior.tipo = 1
-            AND anterior.competencia >= ?
-            AND anterior.competencia < ?
         ORDER BY
             e.nome
     """
