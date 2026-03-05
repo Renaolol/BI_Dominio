@@ -60,40 +60,26 @@ def retorna_lanctos(codi_emp,data_lancto):
     return lanctos
 #lanctos = retorna_lanctos(1, "2025-11-01")
 def retorna_menor_salario_min(competencia):
+    compe=date(competencia.year,competencia.month,1)
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
-SELECT 
-    f.codi_emp,
-    emp.NOME AS empresa,
-    f.i_empregados,
-    e.nome AS funcionario,
-    SUM(f.valor_cal) AS soma_valor_cal
-FROM 
-    bethadba.fomovtoserv f
-LEFT JOIN
-    bethadba.foempregados e
-    ON f.i_empregados = e.i_empregados
-   AND f.codi_emp = e.codi_emp
-LEFT JOIN
-    bethadba.PRVCLIENTES emp
-    ON f.codi_emp = emp.CODIGO
-WHERE 
-    f.valor_cal > 0
-    AND f.data >= ?
-GROUP BY
-    f.codi_emp,
-    emp.NOME,
-    f.i_empregados,
-    e.nome
-HAVING
-    SUM(f.valor_cal) < 1621
-ORDER BY
-    emp.NOME,
-    e.nome;
-                 
+        SELECT 
+            s.SALARIO, e.nome, emp.NOME
+        FROM 
+            bethadba.fobasesserv s
+        LEFT JOIN
+            bethadba.foempregados e
+        ON
+            s.codi_emp = e.codi_emp AND s.i_empregados = e.i_empregados
+        LEFT JOIN
+            bethadba.PRVCLIENTES emp
+        ON
+            s.codi_emp = emp.CODIGO
+        WHERE
+            competencia >=? AND s.SALARIO < 1621 AND s.tipo_process = 11 AND s.rateio=0
 			"""
-    cursor.execute(query,(competencia))
+    cursor.execute(query,(compe))
     resultado = cursor.fetchall()
     conn.close()
     return resultado
@@ -1014,39 +1000,21 @@ def retorna_dif_salarios():
     conn.close()
     return resultado
 
-
 def teste():
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
         SELECT 
-            f.codi_emp,
-            emp.NOME AS empresa,
-            f.i_empregados,
-            e.nome AS funcionario,
-            SUM(f.valor_cal) AS soma_valor_cal
+            s.SALARIO, e.nome, s.competencia ,s.tipo_process, s.CALCULAR_DIFERENCA_13_ADIANTAMENTO
         FROM 
-            bethadba.fomovtoserv f
+            bethadba.fobasesserv s
         LEFT JOIN
             bethadba.foempregados e
-            ON f.i_empregados = e.i_empregados
-        AND f.codi_emp = e.codi_emp
-        LEFT JOIN
-            bethadba.PRVCLIENTES emp
-            ON f.codi_emp = emp.CODIGO
-        WHERE 
-            f.valor_cal > 0
-            AND f.data >= ?
-        GROUP BY
-            f.codi_emp,
-            emp.NOME,
-            f.i_empregados,
-            e.nome
-        HAVING
-            SUM(f.valor_cal) < 1621
-        ORDER BY
-            emp.NOME,
-            e.nome;
+        ON
+            s.codi_emp = e.codi_emp AND s.i_empregados = e.i_empregados
+        WHERE
+            competencia >=? AND s.SALARIO < 1621 AND s.tipo_process = 11 AND s.rateio = 0
+
 
 			"""
     cursor.execute(query,('2026-02-01'))
