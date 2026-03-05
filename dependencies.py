@@ -99,7 +99,11 @@ def retorna_prox_ferias(competencia:date) -> list :
             LEFT JOIN
             bethadba.PRVCLIENTES emp
             ON e.codi_emp = emp.CODIGO
-            WHERE f.FIM_AQUISITIVO >= ? AND f.FIM_AQUISITIVO <=?
+            LEFT JOIN
+            bethadba.forescisoes r
+            ON
+            e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
+            WHERE f.FIM_AQUISITIVO >= ? AND f.FIM_AQUISITIVO <=? AND r.demissao is NULL
             ORDER BY f.FIM_AQUISITIVO
 			"""
     cursor.execute(query, (inicio_mes, fim_mes))
