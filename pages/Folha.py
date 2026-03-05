@@ -133,17 +133,22 @@ with st.expander("Validação de Salários"):
     dados_diferenca = retorna_dif_salarios()
     diferenca_list = []
     for x in dados_diferenca:
-        competencia_anterior = x[4].strftime("%m/%Y") if x[4] else ""
-        competencia_atual = x[5].strftime("%m/%Y") if x[5] else ""
-        salario_anterior = float(x[6]) if x[6] is not None else 0.0
-        salario_atual = float(x[7]) if x[7] is not None else 0.0
-        diferenca_salario = float(x[8]) if x[8] is not None else 0.0
+        salario_atual = float(x[0]) if x[0] is not None else 0.0
+        salario_anterior = float(x[1]) if x[1] is not None else 0.0
+        diferenca_salario = float(x[2]) if x[2] is not None else 0.0
+        funcionario = x[3]
+        empresa = x[4]
+        competencia_atual_data = x[5]
+        competencia_atual = competencia_atual_data.strftime("%m/%Y") if competencia_atual_data else ""
+        competencia_anterior = (
+            (competencia_atual_data - relativedelta(months=1)).strftime("%m/%Y")
+            if competencia_atual_data
+            else ""
+        )
 
         linha = [
-            x[0],
-            x[1],
-            x[2],
-            x[3],
+            funcionario,
+            empresa,
             competencia_anterior,
             competencia_atual,
             salario_anterior,
@@ -156,8 +161,6 @@ with st.expander("Validação de Salários"):
     diferenca_df = pd.DataFrame(
         diferenca_list,
         columns=[
-            "Cod. Empresa",
-            "ID Funcionário",
             "Funcionário",
             "Empresa",
             "Competência Anterior",

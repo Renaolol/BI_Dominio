@@ -930,68 +930,41 @@ def retorna_dif_salarios():
     competencia_base = date.today().replace(day=1)
     competencia_atual_inicio = (competencia_base - timedelta(days=1)).replace(day=1)
     competencia_anterior_inicio = (competencia_atual_inicio - timedelta(days=1)).replace(day=1)
-    competencia_proximo_mes = competencia_base
 
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
-        SELECT DISTINCT
-            atual.codi_emp,
-            atual.i_empregados,
-            e.nome,
+        SELECT
+            s_atual.SALARIO AS salario_atual,
+            s_anterior.SALARIO AS salario_anterior,
+            ABS(s_atual.SALARIO - s_anterior.SALARIO) AS diferenca,
+            e.nome AS funcionario,
             emp.NOME AS empresa,
-            anterior.competencia AS competencia_anterior,
-            atual.competencia AS competencia_atual,
-            anterior.valor_total AS salario_anterior,
-            atual.valor_total AS salario_atual,
-            atual.valor_total - anterior.valor_total AS diferenca_salario
-        FROM
-            (
-                SELECT
-                    p.codi_emp,
-                    p.i_empregados,
-                    p.competencia,
-                    SUM(COALESCE(p.valor, 0)) AS valor_total
-                FROM
-                    bethadba.FOPROVISOES_PERIODOS_VALORES p
-                WHERE
-                    p.competencia >= ?
-                    AND p.competencia < ?
-                GROUP BY
-                    p.codi_emp, p.i_empregados, p.competencia
-            ) AS atual
-        JOIN
-            (
-                SELECT
-                    p.codi_emp,
-                    p.i_empregados,
-                    p.competencia,
-                    SUM(COALESCE(p.valor, 0)) AS valor_total
-                FROM
-                    bethadba.FOPROVISOES_PERIODOS_VALORES p
-                WHERE
-                    p.competencia >= ?
-                    AND p.competencia < ?
-                GROUP BY
-                    p.codi_emp, p.i_empregados, p.competencia
-            ) AS anterior
-            ON atual.codi_emp = anterior.codi_emp
-            AND atual.i_empregados = anterior.i_empregados
-        LEFT JOIN
-            bethadba.foempregados e
-            ON atual.codi_emp = e.codi_emp
-            AND atual.i_empregados = e.i_empregados
-        LEFT JOIN
-            bethadba.PRVCLIENTES emp
-            ON atual.codi_emp = emp.CODIGO
+            s_atual.competencia
+        FROM bethadba.fobasesserv s_atual
+        INNER JOIN bethadba.fobasesserv s_anterior
+            ON s_anterior.codi_emp = s_atual.codi_emp
+            AND s_anterior.i_empregados = s_atual.i_empregados
+            AND s_anterior.competencia = ?
+            AND s_anterior.tipo_process = 11
+            AND s_anterior.rateio = 0
+        LEFT JOIN bethadba.foempregados e
+            ON s_atual.codi_emp = e.codi_emp
+            AND s_atual.i_empregados = e.i_empregados
+        LEFT JOIN bethadba.PRVCLIENTES emp
+            ON s_atual.codi_emp = emp.CODIGO
+        WHERE
+            s_atual.competencia = ?
+            AND s_atual.tipo_process = 11
+            AND s_atual.rateio = 0
+            AND ABS(s_atual.SALARIO - s_anterior.SALARIO) > 1
         ORDER BY
-            e.nome
+            emp.NOME, e.nome, s_atual.competencia;
+
     """
     cursor.execute(
         query,
         (
-            competencia_atual_inicio,
-            competencia_proximo_mes,
             competencia_anterior_inicio,
             competencia_atual_inicio,
         ),
@@ -1000,26 +973,3 @@ def retorna_dif_salarios():
     conn.close()
     return resultado
 
-def teste():
-    conn = conecta_odbc()
-    cursor = conn.cursor()
-    query = """
-        SELECT 
-            s.SALARIO, e.nome, s.competencia ,s.tipo_process, s.CALCULAR_DIFERENCA_13_ADIANTAMENTO
-        FROM 
-            bethadba.fobasesserv s
-        LEFT JOIN
-            bethadba.foempregados e
-        ON
-            s.codi_emp = e.codi_emp AND s.i_empregados = e.i_empregados
-        WHERE
-            competencia >=? AND s.SALARIO < 1621 AND s.tipo_process = 11 AND s.rateio = 0
-
-
-			"""
-    cursor.execute(query,('2026-02-01'))
-    resultado = cursor.fetchall()
-    conn.close()
-    return resultado
-
-pprint(teste())
