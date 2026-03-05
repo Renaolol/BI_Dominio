@@ -63,17 +63,35 @@ def retorna_menor_salario_min(competencia):
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
-			SELECT f.salario, e.nome, emp.NOME, f.competencia, f.vencto_ferias, f.tipo
-            FROM 
-            bethadba.foprovisoes f
-            LEFT JOIN
-            bethadba.foempregados e
-            ON f.i_empregados = e.i_empregados
-            AND f.codi_emp = e.codi_emp
-            LEFT JOIN
-            bethadba.PRVCLIENTES emp
-            ON f.codi_emp = emp.CODIGO
-            WHERE f.salario < 1621 AND f.salario > 0 AND f.competencia >= ? AND f.tipo = 1
+SELECT 
+    f.codi_emp,
+    emp.NOME AS empresa,
+    f.i_empregados,
+    e.nome AS funcionario,
+    SUM(f.valor_cal) AS soma_valor_cal
+FROM 
+    bethadba.fomovtoserv f
+LEFT JOIN
+    bethadba.foempregados e
+    ON f.i_empregados = e.i_empregados
+   AND f.codi_emp = e.codi_emp
+LEFT JOIN
+    bethadba.PRVCLIENTES emp
+    ON f.codi_emp = emp.CODIGO
+WHERE 
+    f.valor_cal > 0
+    AND f.data >= ?
+GROUP BY
+    f.codi_emp,
+    emp.NOME,
+    f.i_empregados,
+    e.nome
+HAVING
+    SUM(f.valor_cal) < 1621
+ORDER BY
+    emp.NOME,
+    e.nome;
+                 
 			"""
     cursor.execute(query,(competencia))
     resultado = cursor.fetchall()
@@ -995,3 +1013,45 @@ def retorna_dif_salarios():
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
+
+def teste():
+    conn = conecta_odbc()
+    cursor = conn.cursor()
+    query = """
+        SELECT 
+            f.codi_emp,
+            emp.NOME AS empresa,
+            f.i_empregados,
+            e.nome AS funcionario,
+            SUM(f.valor_cal) AS soma_valor_cal
+        FROM 
+            bethadba.fomovtoserv f
+        LEFT JOIN
+            bethadba.foempregados e
+            ON f.i_empregados = e.i_empregados
+        AND f.codi_emp = e.codi_emp
+        LEFT JOIN
+            bethadba.PRVCLIENTES emp
+            ON f.codi_emp = emp.CODIGO
+        WHERE 
+            f.valor_cal > 0
+            AND f.data >= ?
+        GROUP BY
+            f.codi_emp,
+            emp.NOME,
+            f.i_empregados,
+            e.nome
+        HAVING
+            SUM(f.valor_cal) < 1621
+        ORDER BY
+            emp.NOME,
+            e.nome;
+
+			"""
+    cursor.execute(query,('2026-02-01'))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+pprint(teste())

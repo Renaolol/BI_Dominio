@@ -19,7 +19,7 @@ with st.expander("Férias"):
         salario = retorna_menor_salario_min(competencia=compt)
         salario_list = []
         for x in salario:
-            salario_list.append([formata_valor(x[0]),x[1],x[2]])
+            salario_list.append([formata_valor(x[4]),x[3],x[1]])
 
         salario_df = pd.DataFrame(salario_list,columns=['Salário','Nome','Empresa'])
         st.write(salario_df)
