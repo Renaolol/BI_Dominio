@@ -935,9 +935,9 @@ def retorna_dif_salarios():
     cursor = conn.cursor()
     query = """
         SELECT
-            s_atual.SALARIO AS salario_atual,
-            s_anterior.SALARIO AS salario_anterior,
-            ABS(s_atual.SALARIO - s_anterior.SALARIO) AS diferenca,
+            s_atual.proventos AS salario_atual,
+            s_anterior.proventos AS salario_anterior,
+            ABS(s_atual.proventos - s_anterior.proventos) AS diferenca,
             e.nome AS funcionario,
             emp.NOME AS empresa,
             s_atual.competencia
@@ -957,7 +957,7 @@ def retorna_dif_salarios():
             s_atual.competencia = ?
             AND s_atual.tipo_process = 11
             AND s_atual.rateio = 0
-            AND ABS(s_atual.SALARIO - s_anterior.SALARIO) > 1
+            AND ABS(s_atual.proventos - s_anterior.proventos) > 1
         ORDER BY
             emp.NOME, e.nome, s_atual.competencia;
 
@@ -972,4 +972,3 @@ def retorna_dif_salarios():
     resultado = cursor.fetchall()
     conn.close()
     return resultado
-
