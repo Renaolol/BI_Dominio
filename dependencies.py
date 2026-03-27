@@ -93,22 +93,36 @@ def retorna_prox_ferias(competencia:date) -> list :
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
-			SELECT e.nome,f.FIM_AQUISITIVO, emp.nome,f.TIPO
+			SELECT 
+                e.nome,f.DATA_FIM, emp.nome,f.TIPO
             FROM 
-            bethadba.foempregados e
+                bethadba.foempregados e
             LEFT JOIN
-            bethadba.FOFERIAS_GOZO f
-            ON f.I_EMPREGADOS = e.i_empregados
-            AND f.CODI_EMP = e.codi_emp
+                bethadba.FOFERIAS_AQUISITIVOS f
+            ON 
+                f.I_EMPREGADOS = e.i_empregados
+            AND 
+                f.CODI_EMP = e.codi_emp
             LEFT JOIN
-            bethadba.PRVCLIENTES emp
-            ON e.codi_emp = emp.CODIGO
+                bethadba.PRVCLIENTES emp
+            ON 
+                e.codi_emp = emp.CODIGO
             LEFT JOIN
-            bethadba.forescisoes r
+                bethadba.forescisoes r
             ON
-            e.codi_emp = r.codi_emp AND e.i_empregados = r.i_empregados
-            WHERE f.FIM_AQUISITIVO >= ? AND f.FIM_AQUISITIVO <=? AND r.demissao is NULL
-            ORDER BY f.FIM_AQUISITIVO
+                e.codi_emp = r.codi_emp 
+            AND 
+                e.i_empregados = r.i_empregados
+            AND 
+                emp.CODIGO = r.codi_emp    
+            WHERE 
+                f.DATA_FIM >= ? 
+            AND 
+                f.DATA_FIM <=? 
+            AND 
+                r.demissao is NULL
+            ORDER BY 
+                f.DATA_FIM
 			"""
     cursor.execute(query, (inicio_mes, fim_mes))
     resultado = cursor.fetchall()
