@@ -927,8 +927,10 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
     return resultado
 
 def retorna_dif_salarios():
-    competencia_base = date.today().replace(day=1)
-    competencia_atual_inicio = (competencia_base - timedelta(days=1)).replace(day=1)
+    hoje = date.today()
+    competencia_atual_inicio = hoje.replace(day=1)
+    if hoje.day <= 26:
+        competencia_atual_inicio = (competencia_atual_inicio - timedelta(days=1)).replace(day=1)
     competencia_anterior_inicio = (competencia_atual_inicio - timedelta(days=1)).replace(day=1)
 
     conn = conecta_odbc()

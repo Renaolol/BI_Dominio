@@ -128,7 +128,7 @@ with st.expander("Admissões e Demissões"):
 
 with st.expander("Validação de Salários"):
     st.subheader("Comparativo de Salário por Competência")
-    st.caption("Competência atual: mês anterior ao mês corrente. Competência anterior: 2 meses atrás.")
+    st.caption("Até o dia 26: atual = mês anterior e anterior = 2 meses atrás. Após o dia 26: atual = mês corrente e anterior = mês anterior.")
 
     dados_diferenca = retorna_dif_salarios()
     diferenca_list = []
