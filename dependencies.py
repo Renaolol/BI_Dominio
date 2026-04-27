@@ -893,9 +893,52 @@ def retorna_ficha_cadastral_demissoes(data_inicial, data_final):
     conn.close()
     return resultado
 
-def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
+PG_NOTAS_CONN_PARAMS = {
+    "dbname": "notas_emitidas",
+    "user": "postgres",
+    "password": "0176",
+    "host": "localhost",
+    "port": 5432,
+    "connect_timeout": 5,
+}
+PG_NOTAS_ENCODINGS = ("UTF8", "WIN1252", "LATIN1")
+
+
+def _safe_exc_message(exc: Exception) -> str:
+    if exc is None:
+        return "erro desconhecido"
     try:
-        conn = psycopg2.connect("dbname=notas_emitidas user=postgres password=0176")
+        return str(exc)
+    except Exception:
+        return repr(exc)
+
+
+def conecta_postgres_notas():
+    ultimo_erro = None
+    for encoding in PG_NOTAS_ENCODINGS:
+        try:
+            return psycopg2.connect(
+                **PG_NOTAS_CONN_PARAMS,
+                options=f"-c client_encoding={encoding}",
+            )
+        except UnicodeDecodeError as exc:
+            # Retry with another client encoding on Windows locales.
+            ultimo_erro = exc
+            continue
+        except psycopg2.Error as exc:
+            ultimo_erro = exc
+            break
+
+    raise ConnectionError(
+        "Falha ao conectar no PostgreSQL (notas_emitidas): "
+        f"{_safe_exc_message(ultimo_erro)}"
+    )
+
+
+def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
+    conn = None
+    try:
+        conn = conecta_postgres_notas()
         cursor = conn.cursor()
         query = """
                 INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade)
@@ -903,42 +946,59 @@ def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
                 """
         cursor.execute(query, (date,cod_cliente,emissor,tipo_nota,quantidade))
         conn.commit()
-        conn.close()
-    except:
-        print("Conexão falhou")
-    return
+        return True
+    except Exception as exc:
+        st.error(f"Conexao com banco de notas falhou: {_safe_exc_message(exc)}")
+        return False
+    finally:
+        if conn is not None:
+            conn.close()
 
 def retorna_contagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
-    conn = psycopg2.connect("dbname=notas_emitidas user=postgres password=0176")
-    cursor = conn.cursor()
+    conn = None
+    try:
+        conn = conecta_postgres_notas()
+        cursor = conn.cursor()
 
-    if tipo == "Por período":
-        query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s"
-        cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
+        if tipo == "Por período":
+            query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s"
+            cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
 
-    else:    
-        query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s"
-        cursor.execute(query, (cod_cliente, ))
+        else:    
+            query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s"
+            cursor.execute(query, (cod_cliente, ))
 
-    resultado = cursor.fetchall()
-    conn.close()
-    return resultado
+        resultado = cursor.fetchall()
+        return resultado
+    except Exception as exc:
+        st.error(f"Falha na consulta das notas emitidas: {_safe_exc_message(exc)}")
+        return [(0,)]
+    finally:
+        if conn is not None:
+            conn.close()
 
 def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
-    conn = psycopg2.connect("dbname=notas_emitidas user=postgres password=0176")
-    cursor = conn.cursor()
+    conn = None
+    try:
+        conn = conecta_postgres_notas()
+        cursor = conn.cursor()
 
-    if tipo == "Por período":
-        query="SELECT * FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s ORDER BY date"
-        cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
-    
-    else:
-        query="SELECT * FROM registros WHERE cod_cliente = %s ORDER BY date"
-        cursor.execute(query, (cod_cliente, ))
+        if tipo == "Por período":
+            query="SELECT * FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s ORDER BY date"
+            cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
+        
+        else:
+            query="SELECT * FROM registros WHERE cod_cliente = %s ORDER BY date"
+            cursor.execute(query, (cod_cliente, ))
 
-    resultado = cursor.fetchall()
-    conn.close()
-    return resultado
+        resultado = cursor.fetchall()
+        return resultado
+    except Exception as exc:
+        st.error(f"Falha na listagem das notas emitidas: {_safe_exc_message(exc)}")
+        return []
+    finally:
+        if conn is not None:
+            conn.close()
 
 def retorna_dif_salarios():
     hoje = date.today()

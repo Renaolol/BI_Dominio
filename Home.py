@@ -26,8 +26,8 @@ if pagina == "Controle de Notas":
     save = st.button("Salvar")
 
     if save:
-        registra_nota(date_doc,empresa[0],user,tipo,quantidade)
-        st.success("Lançamento Efetuado!")
+        if registra_nota(date_doc,empresa[0],user,tipo,quantidade):
+            st.success("Lançamento Efetuado!")
     st.divider()
     pesquisa = st.radio("Selecione o Tipo de pesquisa",["Geral","Por período"],horizontal=True)
     if pesquisa =="Por período":
