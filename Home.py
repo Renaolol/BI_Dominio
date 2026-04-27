@@ -49,7 +49,12 @@ if pagina == "Controle de Notas":
         listagem_notas = []
         notas= retorna_listagem_notas_emitidas(empresa[0],dt_init,dt_fim,pesquisa)
         for registro in notas:
-            listagem_notas.append([registro[0],registro[1].strftime("%d/%m/%Y"),registro[2]
+            data_registro = registro[1]
+            if hasattr(data_registro, "strftime"):
+                data_exibicao = data_registro.strftime("%d/%m/%Y")
+            else:
+                data_exibicao = str(data_registro)
+            listagem_notas.append([registro[0],data_exibicao,registro[2]
                                    ,registro[3],registro[4],registro[5]])
         df_notas = pd.DataFrame(listagem_notas,columns=["ID","Data","Empresa","Emissor","Tipo","Quantidade"])
         st.dataframe(df_notas[["Data","Emissor","Tipo","Quantidade"]])

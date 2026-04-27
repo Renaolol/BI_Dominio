@@ -5,6 +5,8 @@ from datetime import timedelta, time, date, datetime
 import calendar
 import streamlit as st
 import psycopg2
+import os
+import sqlite3
 from io import BytesIO
 CONEXAO = "DSN=ContabilPBI;UID=PBI;PWD=Pbi"
 
@@ -897,11 +899,15 @@ PG_NOTAS_CONN_PARAMS = {
     "dbname": "notas_emitidas",
     "user": "postgres",
     "password": "0176",
-    "host": "localhost",
-    "port": 5432,
+    "host": os.getenv("NOTAS_DB_HOST", "127.0.0.1"),
+    "port": int(os.getenv("NOTAS_DB_PORT", "5432")),
     "connect_timeout": 5,
 }
 PG_NOTAS_ENCODINGS = ("UTF8", "WIN1252", "LATIN1")
+SQLITE_NOTAS_DB_PATH = os.getenv(
+    "NOTAS_SQLITE_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "notas_emitidas.sqlite3"),
+)
 
 
 def _safe_exc_message(exc: Exception) -> str:
@@ -911,6 +917,39 @@ def _safe_exc_message(exc: Exception) -> str:
         return str(exc)
     except Exception:
         return repr(exc)
+
+
+def _to_iso_date(valor):
+    if isinstance(valor, datetime):
+        return valor.date().isoformat()
+    if isinstance(valor, date):
+        return valor.isoformat()
+    return str(valor)
+
+
+def _to_date_obj(valor):
+    if isinstance(valor, date):
+        return valor
+    if isinstance(valor, str):
+        try:
+            return datetime.strptime(valor, "%Y-%m-%d").date()
+        except ValueError:
+            return valor
+    return valor
+
+
+def _aviso_fallback_sqlite(exc_pg):
+    try:
+        chave = "_notas_db_fallback_sqlite_exibido"
+        if not st.session_state.get(chave, False):
+            st.warning(
+                "PostgreSQL indisponivel no momento. "
+                "A tela de notas esta usando banco local SQLite em "
+                f"`{SQLITE_NOTAS_DB_PATH}`. Detalhe: {_safe_exc_message(exc_pg)}"
+            )
+            st.session_state[chave] = True
+    except Exception:
+        pass
 
 
 def conecta_postgres_notas():
@@ -935,16 +974,54 @@ def conecta_postgres_notas():
     )
 
 
+def conecta_sqlite_notas():
+    conn = sqlite3.connect(SQLITE_NOTAS_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS registros (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            cod_cliente INTEGER NOT NULL,
+            emissor TEXT NOT NULL,
+            tipo TEXT NOT NULL,
+            quantidade REAL NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    return conn
+
+
+def _conecta_notas():
+    try:
+        return conecta_postgres_notas(), "postgres"
+    except Exception as exc_pg:
+        conn_sqlite = conecta_sqlite_notas()
+        _aviso_fallback_sqlite(exc_pg)
+        return conn_sqlite, "sqlite"
+
+
 def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
     conn = None
     try:
-        conn = conecta_postgres_notas()
+        conn, engine = _conecta_notas()
         cursor = conn.cursor()
-        query = """
-                INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade)
-                VALUES (%s,%s,%s,%s,%s) 
-                """
-        cursor.execute(query, (date,cod_cliente,emissor,tipo_nota,quantidade))
+        if engine == "postgres":
+            query = """
+                    INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade)
+                    VALUES (%s,%s,%s,%s,%s) 
+                    """
+            cursor.execute(query, (date,cod_cliente,emissor,tipo_nota,quantidade))
+        else:
+            query = """
+                    INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade)
+                    VALUES (?,?,?,?,?)
+                    """
+            cursor.execute(
+                query,
+                (_to_iso_date(date), cod_cliente, emissor, tipo_nota, quantidade),
+            )
         conn.commit()
         return True
     except Exception as exc:
@@ -954,22 +1031,33 @@ def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
         if conn is not None:
             conn.close()
 
+
 def retorna_contagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
     conn = None
     try:
-        conn = conecta_postgres_notas()
+        conn, engine = _conecta_notas()
         cursor = conn.cursor()
 
-        if tipo == "Por período":
-            query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s"
-            cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
-
-        else:    
-            query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s"
-            cursor.execute(query, (cod_cliente, ))
+        if engine == "postgres":
+            if tipo == "Por período":
+                query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s"
+                cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
+            else:
+                query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s"
+                cursor.execute(query, (cod_cliente, ))
+        else:
+            if tipo == "Por período":
+                query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = ? AND date >= ? AND date <= ?"
+                cursor.execute(query, (cod_cliente, _to_iso_date(dt_inicial), _to_iso_date(dt_final)))
+            else:
+                query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = ?"
+                cursor.execute(query, (cod_cliente, ))
 
         resultado = cursor.fetchall()
-        return resultado
+        total = resultado[0][0] if resultado else 0
+        if total is None:
+            total = 0
+        return [(total,)]
     except Exception as exc:
         st.error(f"Falha na consulta das notas emitidas: {_safe_exc_message(exc)}")
         return [(0,)]
@@ -977,21 +1065,43 @@ def retorna_contagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
         if conn is not None:
             conn.close()
 
+
 def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
     conn = None
     try:
-        conn = conecta_postgres_notas()
+        conn, engine = _conecta_notas()
         cursor = conn.cursor()
 
-        if tipo == "Por período":
-            query="SELECT * FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s ORDER BY date"
-            cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
-        
+        if engine == "postgres":
+            if tipo == "Por período":
+                query="SELECT * FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s ORDER BY date"
+                cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
+            else:
+                query="SELECT * FROM registros WHERE cod_cliente = %s ORDER BY date"
+                cursor.execute(query, (cod_cliente, ))
         else:
-            query="SELECT * FROM registros WHERE cod_cliente = %s ORDER BY date"
-            cursor.execute(query, (cod_cliente, ))
+            if tipo == "Por período":
+                query="SELECT * FROM registros WHERE cod_cliente = ? AND date >= ? AND date <= ? ORDER BY date"
+                cursor.execute(query, (cod_cliente, _to_iso_date(dt_inicial), _to_iso_date(dt_final)))
+            else:
+                query="SELECT * FROM registros WHERE cod_cliente = ? ORDER BY date"
+                cursor.execute(query, (cod_cliente, ))
 
         resultado = cursor.fetchall()
+        if engine == "sqlite":
+            normalizado = []
+            for registro in resultado:
+                normalizado.append(
+                    (
+                        registro[0],
+                        _to_date_obj(registro[1]),
+                        registro[2],
+                        registro[3],
+                        registro[4],
+                        registro[5],
+                    )
+                )
+            return normalizado
         return resultado
     except Exception as exc:
         st.error(f"Falha na listagem das notas emitidas: {_safe_exc_message(exc)}")
