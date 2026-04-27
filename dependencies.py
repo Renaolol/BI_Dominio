@@ -1193,6 +1193,53 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
         if conn is not None:
             conn.close()
 
+
+def retorna_listagem_notas_geral(dt_inicial,dt_final):
+    conn = None
+    try:
+        conn, engine = _conecta_notas()
+        cursor = conn.cursor()
+
+        if engine == "postgres":
+            query = """
+                    SELECT id, date, cod_cliente, emissor, tipo, quantidade
+                    FROM registros
+                    WHERE date >= %s AND date <= %s
+                    ORDER BY date, id
+                    """
+            cursor.execute(query, (dt_inicial, dt_final))
+        else:
+            query = """
+                    SELECT id, date, cod_cliente, emissor, tipo, quantidade
+                    FROM registros
+                    WHERE date >= ? AND date <= ?
+                    ORDER BY date, id
+                    """
+            cursor.execute(query, (_to_iso_date(dt_inicial), _to_iso_date(dt_final)))
+
+        resultado = cursor.fetchall()
+        if engine == "sqlite":
+            normalizado = []
+            for registro in resultado:
+                normalizado.append(
+                    (
+                        registro[0],
+                        _to_date_obj(registro[1]),
+                        registro[2],
+                        registro[3],
+                        registro[4],
+                        registro[5],
+                    )
+                )
+            return normalizado
+        return resultado
+    except Exception as exc:
+        st.error(f"Falha na consulta geral de notas: {_safe_exc_message(exc)}")
+        return []
+    finally:
+        if conn is not None:
+            conn.close()
+
 def retorna_dif_salarios():
     hoje = date.today()
     competencia_atual_inicio = hoje.replace(day=1)
