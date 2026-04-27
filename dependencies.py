@@ -1052,6 +1052,69 @@ def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
             conn.close()
 
 
+def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,quantidade):
+    conn = None
+    try:
+        conn, engine = _conecta_notas()
+        cursor = conn.cursor()
+        if engine == "postgres":
+            query = """
+                    UPDATE registros
+                    SET date = %s, emissor = %s, tipo = %s, quantidade = %s
+                    WHERE id = %s AND cod_cliente = %s
+                    """
+            cursor.execute(
+                query,
+                (date_doc, emissor, tipo_nota, quantidade, id_registro, cod_cliente),
+            )
+        else:
+            query = """
+                    UPDATE registros
+                    SET date = ?, emissor = ?, tipo = ?, quantidade = ?
+                    WHERE id = ? AND cod_cliente = ?
+                    """
+            cursor.execute(
+                query,
+                (
+                    _to_iso_date(date_doc),
+                    emissor,
+                    tipo_nota,
+                    quantidade,
+                    id_registro,
+                    cod_cliente,
+                ),
+            )
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as exc:
+        st.error(f"Falha ao atualizar lancamento: {_safe_exc_message(exc)}")
+        return False
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def exclui_nota_emitida(id_registro,cod_cliente):
+    conn = None
+    try:
+        conn, engine = _conecta_notas()
+        cursor = conn.cursor()
+        if engine == "postgres":
+            query = "DELETE FROM registros WHERE id = %s AND cod_cliente = %s"
+            cursor.execute(query, (id_registro, cod_cliente))
+        else:
+            query = "DELETE FROM registros WHERE id = ? AND cod_cliente = ?"
+            cursor.execute(query, (id_registro, cod_cliente))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as exc:
+        st.error(f"Falha ao excluir lancamento: {_safe_exc_message(exc)}")
+        return False
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def retorna_contagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
     conn = None
     try:
