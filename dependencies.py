@@ -7,6 +7,7 @@ import streamlit as st
 import psycopg2
 import os
 import sqlite3
+import socket
 from io import BytesIO
 CONEXAO = "DSN=ContabilPBI;UID=PBI;PWD=Pbi"
 
@@ -896,9 +897,9 @@ def retorna_ficha_cadastral_demissoes(data_inicial, data_final):
     return resultado
 
 PG_NOTAS_CONN_PARAMS = {
-    "dbname": "notas_emitidas",
-    "user": "postgres",
-    "password": "0176",
+    "dbname": os.getenv("NOTAS_DB_NAME", "notas_emitidas"),
+    "user": os.getenv("NOTAS_DB_USER", "postgres"),
+    "password": os.getenv("NOTAS_DB_PASSWORD", "0176"),
     "host": os.getenv("NOTAS_DB_HOST", "127.0.0.1"),
     "port": int(os.getenv("NOTAS_DB_PORT", "5432")),
     "connect_timeout": 5,
@@ -952,7 +953,25 @@ def _aviso_fallback_sqlite(exc_pg):
         pass
 
 
+def _validar_porta_postgres():
+    host = PG_NOTAS_CONN_PARAMS["host"]
+    port = PG_NOTAS_CONN_PARAMS["port"]
+    timeout = min(PG_NOTAS_CONN_PARAMS.get("connect_timeout", 5), 5)
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return
+    except Exception as exc:
+        raise ConnectionError(
+            "Servico PostgreSQL indisponivel em "
+            f"{host}:{port}. Verifique se o servico esta iniciado "
+            "e se host/porta estao corretos. "
+            f"Erro TCP: {_safe_exc_message(exc)}"
+        ) from exc
+
+
 def conecta_postgres_notas():
+    _validar_porta_postgres()
+
     ultimo_erro = None
     for encoding in PG_NOTAS_ENCODINGS:
         try:
@@ -969,7 +988,8 @@ def conecta_postgres_notas():
             break
 
     raise ConnectionError(
-        "Falha ao conectar no PostgreSQL (notas_emitidas): "
+        "Falha ao autenticar/conectar no PostgreSQL "
+        f"({PG_NOTAS_CONN_PARAMS['dbname']}): "
         f"{_safe_exc_message(ultimo_erro)}"
     )
 
