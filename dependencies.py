@@ -939,6 +939,13 @@ def _to_date_obj(valor):
     return valor
 
 
+def _pesquisa_por_periodo(tipo):
+    if tipo is None:
+        return False
+    tipo_normalizado = str(tipo).strip().lower()
+    return tipo_normalizado in ("por periodo", "por período")
+
+
 def _aviso_fallback_sqlite(exc_pg):
     try:
         chave = "_notas_db_fallback_sqlite_exibido"
@@ -1005,7 +1012,8 @@ def conecta_sqlite_notas():
             cod_cliente INTEGER NOT NULL,
             emissor TEXT NOT NULL,
             tipo TEXT NOT NULL,
-            quantidade REAL NOT NULL
+            quantidade REAL NOT NULL,
+            tempo_minutos REAL NOT NULL DEFAULT 0
         )
         """
     )
@@ -1013,34 +1021,83 @@ def conecta_sqlite_notas():
     return conn
 
 
+def _garante_schema_notas(conn, engine):
+    cursor = conn.cursor()
+    if engine == "postgres":
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS registros (
+                id SERIAL PRIMARY KEY,
+                date DATE NOT NULL,
+                cod_cliente INTEGER NOT NULL,
+                emissor TEXT NOT NULL,
+                tipo TEXT NOT NULL,
+                quantidade DOUBLE PRECISION NOT NULL,
+                tempo_minutos DOUBLE PRECISION NOT NULL DEFAULT 0
+            )
+            """
+        )
+        cursor.execute(
+            "ALTER TABLE registros ADD COLUMN IF NOT EXISTS tempo_minutos DOUBLE PRECISION"
+        )
+        cursor.execute("UPDATE registros SET tempo_minutos = 0 WHERE tempo_minutos IS NULL")
+        cursor.execute("ALTER TABLE registros ALTER COLUMN tempo_minutos SET DEFAULT 0")
+        cursor.execute("ALTER TABLE registros ALTER COLUMN tempo_minutos SET NOT NULL")
+    else:
+        cursor.execute("PRAGMA table_info(registros)")
+        colunas = [coluna[1] for coluna in cursor.fetchall()]
+        if "tempo_minutos" not in colunas:
+            cursor.execute(
+                "ALTER TABLE registros ADD COLUMN tempo_minutos REAL NOT NULL DEFAULT 0"
+            )
+        cursor.execute("UPDATE registros SET tempo_minutos = 0 WHERE tempo_minutos IS NULL")
+    conn.commit()
+
+
 def _conecta_notas():
+    conn_pg = None
     try:
-        return conecta_postgres_notas(), "postgres"
+        conn_pg = conecta_postgres_notas()
+        _garante_schema_notas(conn_pg, "postgres")
+        return conn_pg, "postgres"
     except Exception as exc_pg:
+        if conn_pg is not None:
+            conn_pg.close()
         conn_sqlite = conecta_sqlite_notas()
+        _garante_schema_notas(conn_sqlite, "sqlite")
         _aviso_fallback_sqlite(exc_pg)
         return conn_sqlite, "sqlite"
 
 
-def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
+def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade,tempo_minutos):
     conn = None
     try:
         conn, engine = _conecta_notas()
         cursor = conn.cursor()
         if engine == "postgres":
             query = """
-                    INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade)
-                    VALUES (%s,%s,%s,%s,%s) 
-                    """
-            cursor.execute(query, (date,cod_cliente,emissor,tipo_nota,quantidade))
-        else:
-            query = """
-                    INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade)
-                    VALUES (?,?,?,?,?)
+                    INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade,tempo_minutos)
+                    VALUES (%s,%s,%s,%s,%s,%s) 
                     """
             cursor.execute(
                 query,
-                (_to_iso_date(date), cod_cliente, emissor, tipo_nota, quantidade),
+                (date,cod_cliente,emissor,tipo_nota,quantidade,tempo_minutos),
+            )
+        else:
+            query = """
+                    INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade,tempo_minutos)
+                    VALUES (?,?,?,?,?,?)
+                    """
+            cursor.execute(
+                query,
+                (
+                    _to_iso_date(date),
+                    cod_cliente,
+                    emissor,
+                    tipo_nota,
+                    quantidade,
+                    tempo_minutos,
+                ),
             )
         conn.commit()
         return True
@@ -1052,7 +1109,7 @@ def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade):
             conn.close()
 
 
-def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,quantidade):
+def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,quantidade,tempo_minutos):
     conn = None
     try:
         conn, engine = _conecta_notas()
@@ -1060,17 +1117,25 @@ def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,qua
         if engine == "postgres":
             query = """
                     UPDATE registros
-                    SET date = %s, emissor = %s, tipo = %s, quantidade = %s
+                    SET date = %s, emissor = %s, tipo = %s, quantidade = %s, tempo_minutos = %s
                     WHERE id = %s AND cod_cliente = %s
                     """
             cursor.execute(
                 query,
-                (date_doc, emissor, tipo_nota, quantidade, id_registro, cod_cliente),
+                (
+                    date_doc,
+                    emissor,
+                    tipo_nota,
+                    quantidade,
+                    tempo_minutos,
+                    id_registro,
+                    cod_cliente,
+                ),
             )
         else:
             query = """
                     UPDATE registros
-                    SET date = ?, emissor = ?, tipo = ?, quantidade = ?
+                    SET date = ?, emissor = ?, tipo = ?, quantidade = ?, tempo_minutos = ?
                     WHERE id = ? AND cod_cliente = ?
                     """
             cursor.execute(
@@ -1080,6 +1145,7 @@ def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,qua
                     emissor,
                     tipo_nota,
                     quantidade,
+                    tempo_minutos,
                     id_registro,
                     cod_cliente,
                 ),
@@ -1122,14 +1188,14 @@ def retorna_contagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
         cursor = conn.cursor()
 
         if engine == "postgres":
-            if tipo == "Por período":
+            if _pesquisa_por_periodo(tipo):
                 query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s"
                 cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
             else:
                 query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = %s"
                 cursor.execute(query, (cod_cliente, ))
         else:
-            if tipo == "Por período":
+            if _pesquisa_por_periodo(tipo):
                 query="SELECT SUM(quantidade) FROM registros WHERE cod_cliente = ? AND date >= ? AND date <= ?"
                 cursor.execute(query, (cod_cliente, _to_iso_date(dt_inicial), _to_iso_date(dt_final)))
             else:
@@ -1156,18 +1222,38 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
         cursor = conn.cursor()
 
         if engine == "postgres":
-            if tipo == "Por período":
-                query="SELECT * FROM registros WHERE cod_cliente = %s AND date >= %s AND date <= %s ORDER BY date"
+            if _pesquisa_por_periodo(tipo):
+                query = """
+                        SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                        FROM registros
+                        WHERE cod_cliente = %s AND date >= %s AND date <= %s
+                        ORDER BY date, id
+                        """
                 cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
             else:
-                query="SELECT * FROM registros WHERE cod_cliente = %s ORDER BY date"
+                query = """
+                        SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                        FROM registros
+                        WHERE cod_cliente = %s
+                        ORDER BY date, id
+                        """
                 cursor.execute(query, (cod_cliente, ))
         else:
-            if tipo == "Por período":
-                query="SELECT * FROM registros WHERE cod_cliente = ? AND date >= ? AND date <= ? ORDER BY date"
+            if _pesquisa_por_periodo(tipo):
+                query = """
+                        SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                        FROM registros
+                        WHERE cod_cliente = ? AND date >= ? AND date <= ?
+                        ORDER BY date, id
+                        """
                 cursor.execute(query, (cod_cliente, _to_iso_date(dt_inicial), _to_iso_date(dt_final)))
             else:
-                query="SELECT * FROM registros WHERE cod_cliente = ? ORDER BY date"
+                query = """
+                        SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                        FROM registros
+                        WHERE cod_cliente = ?
+                        ORDER BY date, id
+                        """
                 cursor.execute(query, (cod_cliente, ))
 
         resultado = cursor.fetchall()
@@ -1182,6 +1268,7 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
                         registro[3],
                         registro[4],
                         registro[5],
+                        registro[6],
                     )
                 )
             return normalizado
@@ -1202,7 +1289,7 @@ def retorna_listagem_notas_geral(dt_inicial,dt_final):
 
         if engine == "postgres":
             query = """
-                    SELECT id, date, cod_cliente, emissor, tipo, quantidade
+                    SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
                     FROM registros
                     WHERE date >= %s AND date <= %s
                     ORDER BY date, id
@@ -1210,7 +1297,7 @@ def retorna_listagem_notas_geral(dt_inicial,dt_final):
             cursor.execute(query, (dt_inicial, dt_final))
         else:
             query = """
-                    SELECT id, date, cod_cliente, emissor, tipo, quantidade
+                    SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
                     FROM registros
                     WHERE date >= ? AND date <= ?
                     ORDER BY date, id
@@ -1229,6 +1316,7 @@ def retorna_listagem_notas_geral(dt_inicial,dt_final):
                         registro[3],
                         registro[4],
                         registro[5],
+                        registro[6],
                     )
                 )
             return normalizado

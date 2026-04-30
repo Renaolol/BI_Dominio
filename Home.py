@@ -41,6 +41,13 @@ def _carrega_mapa_empresas():
         return {}
 
 
+def _formata_minutos_exibicao(minutos):
+    try:
+        return formata_horas_min_seg(float(minutos))
+    except Exception:
+        return "00:00:00"
+
+
 st.title("Central GCONT", "GCONT")
 st.divider()
 st.header("Bem Vindo(a)")
@@ -58,7 +65,7 @@ if pagina == "Controle de Notas":
     )
 
     with st.container(border=True):
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
             date_doc = st.date_input(
                 "Selecione a data de emissao", width=250, format="DD/MM/YYYY"
@@ -69,10 +76,14 @@ if pagina == "Controle de Notas":
             tipo = st.radio("Documento", ["NF-e", "NFC-e", "CT-e", "NFS-e"], horizontal=True)
         with c4:
             quantidade = st.number_input("Quantidade", step=0, width=250)
+        with c5:
+            tempo_gasto_min = st.number_input(
+                "Tempo gasto (min)", min_value=0.0, step=1.0, width=250
+            )
     save = st.button("Salvar")
 
     if save:
-        if registra_nota(date_doc, empresa[0], user, tipo, quantidade):
+        if registra_nota(date_doc, empresa[0], user, tipo, quantidade, tempo_gasto_min):
             st.success("Lancamento Efetuado!")
     st.divider()
     pesquisa = st.radio("Selecione o Tipo de pesquisa", ["Geral", "Por periodo"], horizontal=True)
@@ -85,24 +96,88 @@ if pagina == "Controle de Notas":
     else:
         dt_init = 0
         dt_fim = 0
+    notas = retorna_listagem_notas_emitidas(empresa[0], dt_init, dt_fim, pesquisa)
+    listagem_notas = []
+    for registro in notas:
+        data_exibicao = _formata_data_exibicao(registro[1])
+        tempo_minutos = registro[6] if len(registro) > 6 else 0
+        listagem_notas.append(
+            [
+                registro[0],
+                data_exibicao,
+                registro[2],
+                registro[3],
+                registro[4],
+                registro[5],
+                tempo_minutos,
+            ]
+        )
+    df_notas = pd.DataFrame(
+        listagem_notas,
+        columns=["ID", "Data", "Empresa", "Emissor", "Tipo", "Quantidade", "Tempo (min)"],
+    )
+    if df_notas.empty:
+        total_notas = 0.0
+        total_tempo_min = 0.0
+    else:
+        df_notas["Quantidade"] = pd.to_numeric(df_notas["Quantidade"], errors="coerce").fillna(0.0)
+        df_notas["Tempo (min)"] = pd.to_numeric(df_notas["Tempo (min)"], errors="coerce").fillna(0.0)
+        total_notas = float(df_notas["Quantidade"].sum())
+        total_tempo_min = float(df_notas["Tempo (min)"].sum())
+    tempo_medio_min = (total_tempo_min / total_notas) if total_notas > 0 else 0.0
+
     col1, col2 = st.columns(2)
     with col1:
         st.header("Notas emitidas para esse cliente")
-        resultado = retorna_contagem_notas_emitidas(empresa[0], dt_init, dt_fim, pesquisa)
-        st.subheader(f"Total de notas emitidas para o cliente: {resultado[0][0]}")
+        st.metric("Total de notas emitidas", f"{total_notas:.2f}")
+        st.metric("Tempo total gasto", _formata_minutos_exibicao(total_tempo_min))
+        st.metric("Tempo medio por nota", _formata_minutos_exibicao(tempo_medio_min))
     with col2:
         st.header("Listagem das notas")
-        listagem_notas = []
-        notas = retorna_listagem_notas_emitidas(empresa[0], dt_init, dt_fim, pesquisa)
-        for registro in notas:
-            data_exibicao = _formata_data_exibicao(registro[1])
-            listagem_notas.append(
-                [registro[0], data_exibicao, registro[2], registro[3], registro[4], registro[5]]
+        st.dataframe(df_notas[["ID", "Data", "Emissor", "Tipo", "Quantidade", "Tempo (min)"]])
+
+        if not df_notas.empty:
+            st.markdown("**Tempo medio por funcionario na empresa selecionada**")
+            resumo_tempo = (
+                df_notas.groupby(["Empresa", "Emissor"], as_index=False)
+                .agg({"Quantidade": "sum", "Tempo (min)": "sum"})
+                .sort_values("Quantidade", ascending=False)
             )
-        df_notas = pd.DataFrame(
-            listagem_notas, columns=["ID", "Data", "Empresa", "Emissor", "Tipo", "Quantidade"]
-        )
-        st.dataframe(df_notas[["ID", "Data", "Emissor", "Tipo", "Quantidade"]])
+            resumo_tempo.rename(
+                columns={
+                    "Empresa": "Codigo Empresa",
+                    "Quantidade": "Notas Emitidas",
+                    "Tempo (min)": "Tempo Total (min)",
+                },
+                inplace=True,
+            )
+            resumo_tempo["Tempo Medio (min/nota)"] = resumo_tempo.apply(
+                lambda linha: (
+                    linha["Tempo Total (min)"] / linha["Notas Emitidas"]
+                    if linha["Notas Emitidas"] > 0
+                    else 0
+                ),
+                axis=1,
+            )
+            resumo_tempo["Tempo Total"] = resumo_tempo["Tempo Total (min)"].apply(_formata_minutos_exibicao)
+            resumo_tempo["Tempo Medio"] = resumo_tempo["Tempo Medio (min/nota)"].apply(
+                _formata_minutos_exibicao
+            )
+            st.dataframe(
+                resumo_tempo[
+                    [
+                        "Codigo Empresa",
+                        "Emissor",
+                        "Notas Emitidas",
+                        "Tempo Total (min)",
+                        "Tempo Medio (min/nota)",
+                        "Tempo Total",
+                        "Tempo Medio",
+                    ]
+                ],
+                hide_index=True,
+                use_container_width=True,
+            )
 
         if notas:
             st.subheader("Atualizar ou excluir lancamento")
@@ -113,19 +188,24 @@ if pagina == "Controle de Notas":
                 notas,
                 format_func=lambda registro: (
                     f"ID {registro[0]} | {_formata_data_exibicao(registro[1])} | "
-                    f"{registro[3]} | {registro[4]} | Qtd {registro[5]}"
+                    f"{registro[3]} | {registro[4]} | Qtd {registro[5]} | Tempo {registro[6]} min"
                 ),
             )
 
             nota_id = nota_selecionada[0]
             data_edicao = _data_para_widget(nota_selecionada[1])
+            tempo_atual = (
+                float(nota_selecionada[6])
+                if len(nota_selecionada) > 6 and nota_selecionada[6] is not None
+                else 0.0
+            )
             tipo_atual = (
                 nota_selecionada[4]
                 if nota_selecionada[4] in tipos_documento
                 else tipos_documento[0]
             )
 
-            e1, e2, e3, e4 = st.columns(4)
+            e1, e2, e3, e4, e5 = st.columns(5)
             with e1:
                 nova_data = st.date_input(
                     "Data do lancamento",
@@ -154,6 +234,14 @@ if pagina == "Controle de Notas":
                     value=float(nota_selecionada[5]),
                     key=f"edit_quantidade_{nota_id}",
                 )
+            with e5:
+                novo_tempo_min = st.number_input(
+                    "Tempo gasto (min)",
+                    min_value=0.0,
+                    step=1.0,
+                    value=tempo_atual,
+                    key=f"edit_tempo_{nota_id}",
+                )
 
             b1, b2 = st.columns(2)
             with b1:
@@ -165,6 +253,7 @@ if pagina == "Controle de Notas":
                         novo_emissor,
                         novo_tipo,
                         nova_quantidade,
+                        novo_tempo_min,
                     )
                     if atualizado:
                         st.success("Lancamento atualizado com sucesso.")
@@ -204,17 +293,25 @@ elif pagina == "Resumo Mensal de Notas":
         st.info("Nao ha lancamentos para o mes selecionado.")
     else:
         df_mes = pd.DataFrame(
-            notas_mes, columns=["ID", "Data", "Cliente", "Emissor", "Tipo", "Quantidade"]
+            notas_mes,
+            columns=["ID", "Data", "Cliente", "Emissor", "Tipo", "Quantidade", "Tempo (min)"],
         )
         df_mes["Data"] = pd.to_datetime(df_mes["Data"], errors="coerce").dt.date
         df_mes["Quantidade"] = pd.to_numeric(df_mes["Quantidade"], errors="coerce").fillna(0.0)
+        df_mes["Tempo (min)"] = pd.to_numeric(df_mes["Tempo (min)"], errors="coerce").fillna(0.0)
         df_mes["Cliente"] = pd.to_numeric(df_mes["Cliente"], errors="coerce").fillna(0).astype(int)
+        tempo_medio_mes = (
+            df_mes["Tempo (min)"].sum() / df_mes["Quantidade"].sum()
+            if df_mes["Quantidade"].sum() > 0
+            else 0
+        )
 
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Total de notas", f"{df_mes['Quantidade'].sum():.2f}")
         c2.metric("Lancamentos", f"{len(df_mes)}")
         c3.metric("Emissores", f"{df_mes['Emissor'].nunique()}")
         c4.metric("Tipos de documento", f"{df_mes['Tipo'].nunique()}")
+        c5.metric("Tempo medio por nota", _formata_minutos_exibicao(tempo_medio_mes))
 
         soma_emissor = (
             df_mes.groupby("Emissor", as_index=False)["Quantidade"]
@@ -287,7 +384,9 @@ elif pagina == "Resumo Mensal de Notas":
                 "%d/%m/%Y"
             )
             st.dataframe(
-                df_detalhes[["ID", "Data", "Cliente", "Emissor", "Tipo", "Quantidade"]],
+                df_detalhes[
+                    ["ID", "Data", "Cliente", "Emissor", "Tipo", "Quantidade", "Tempo (min)"]
+                ],
                 use_container_width=True,
                 hide_index=True,
             )
