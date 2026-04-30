@@ -174,14 +174,30 @@ with st.expander("Validação de Salários"):
     if diferenca_df.empty:
         st.info("Nenhuma diferença encontrada")
     else:
-        st.metric("Qtd. com diferença", len(diferenca_df))
-        st.dataframe(
-            diferenca_df.style.format(
-                {
-                    "Salário Anterior": lambda v: formata_valor(v),
-                    "Salário Atual": lambda v: formata_valor(v),
-                    "Diferença": lambda v: formata_valor(v),
-                }
-            ),
-            use_container_width=True,
-        )
+        filtro_empresa = st.text_input(
+            "Filtrar empresa",
+            placeholder="Digite o nome da empresa",
+        ).strip()
+
+        diferenca_filtrada_df = diferenca_df
+        if filtro_empresa:
+            diferenca_filtrada_df = diferenca_df[
+                diferenca_df["Empresa"].fillna("").str.contains(
+                    filtro_empresa, case=False, na=False
+                )
+            ]
+
+        st.metric("Qtd. com diferença", len(diferenca_filtrada_df))
+        if diferenca_filtrada_df.empty:
+            st.info("Nenhuma empresa encontrada para o filtro informado.")
+        else:
+            st.dataframe(
+                diferenca_filtrada_df.style.format(
+                    {
+                        "Salário Anterior": lambda v: formata_valor(v),
+                        "Salário Atual": lambda v: formata_valor(v),
+                        "Diferença": lambda v: formata_valor(v),
+                    }
+                ),
+                use_container_width=True,
+            )
