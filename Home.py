@@ -1,5 +1,5 @@
 import calendar
-from datetime import date
+from datetime import date, datetime, time, timedelta
 
 import pandas as pd
 import streamlit as st
@@ -46,6 +46,58 @@ def _formata_minutos_exibicao(minutos):
         return formata_horas_min_seg(float(minutos))
     except Exception:
         return "00:00:00"
+
+
+def _para_minutos_seguro(valor):
+    if valor is None:
+        return 0.0
+
+    if isinstance(valor, timedelta):
+        return max(float(valor.total_seconds() / 60), 0.0)
+
+    if isinstance(valor, datetime):
+        return max(float(valor.hour * 60 + valor.minute + (valor.second / 60)), 0.0)
+
+    if isinstance(valor, time):
+        return max(float(valor.hour * 60 + valor.minute + (valor.second / 60)), 0.0)
+
+    try:
+        return max(float(valor), 0.0)
+    except (TypeError, ValueError):
+        texto = str(valor).strip()
+        if ":" in texto:
+            partes = texto.split(":")
+            if len(partes) >= 2:
+                try:
+                    horas = float(partes[0])
+                    minutos = float(partes[1])
+                    segundos = float(partes[2]) if len(partes) >= 3 else 0.0
+                    return max((horas * 60) + minutos + (segundos / 60), 0.0)
+                except ValueError:
+                    return 0.0
+        return 0.0
+
+
+def _extrai_tempo_registro(registro):
+    if not registro or len(registro) <= 6:
+        return 0.0
+
+    # Prioriza o indice esperado (tempo_minutos) quando o schema estiver alinhado.
+    valor_indice_6 = registro[6]
+    if isinstance(valor_indice_6, (int, float, str, timedelta, datetime, time)):
+        minutos = _para_minutos_seguro(valor_indice_6)
+        if minutos > 0 or str(valor_indice_6).strip() in ("0", "0.0"):
+            return minutos
+
+    # Fallback para bases legadas em que existam colunas extras entre quantidade e tempo.
+    for indice in range(len(registro) - 1, 5, -1):
+        valor = registro[indice]
+        if isinstance(valor, (int, float, str, timedelta, datetime, time)):
+            minutos = _para_minutos_seguro(valor)
+            if minutos > 0 or str(valor).strip() in ("0", "0.0"):
+                return minutos
+
+    return 0.0
 
 
 st.title("Central GCONT", "GCONT")
@@ -100,7 +152,7 @@ if pagina == "Controle de Notas":
     listagem_notas = []
     for registro in notas:
         data_exibicao = _formata_data_exibicao(registro[1])
-        tempo_minutos = registro[6] if len(registro) > 6 else 0
+        tempo_minutos = _extrai_tempo_registro(registro)
         listagem_notas.append(
             [
                 registro[0],
@@ -188,17 +240,14 @@ if pagina == "Controle de Notas":
                 notas,
                 format_func=lambda registro: (
                     f"ID {registro[0]} | {_formata_data_exibicao(registro[1])} | "
-                    f"{registro[3]} | {registro[4]} | Qtd {registro[5]} | Tempo {registro[6]} min"
+                    f"{registro[3]} | {registro[4]} | Qtd {registro[5]} | "
+                    f"Tempo {_extrai_tempo_registro(registro):.2f} min"
                 ),
             )
 
             nota_id = nota_selecionada[0]
             data_edicao = _data_para_widget(nota_selecionada[1])
-            tempo_atual = (
-                float(nota_selecionada[6])
-                if len(nota_selecionada) > 6 and nota_selecionada[6] is not None
-                else 0.0
-            )
+            tempo_atual = _extrai_tempo_registro(nota_selecionada)
             tipo_atual = (
                 nota_selecionada[4]
                 if nota_selecionada[4] in tipos_documento
