@@ -109,7 +109,7 @@ pagina = st.segmented_control(
 )
 
 if pagina == "Controle de Notas":
-    st.subheader("Contorle de notas emitidas no escritorio")
+    st.subheader("Controle de notas emitidas no escritorio")
     empresa = st.selectbox(
         "Selecione a empresa que foi lancado Notas",
         retorna_codigos_empresas(),
