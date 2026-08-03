@@ -1012,6 +1012,7 @@ def conecta_sqlite_notas():
             cod_cliente INTEGER NOT NULL,
             emissor TEXT NOT NULL,
             tipo TEXT NOT NULL,
+            tipo_nota_emitida TEXT NOT NULL DEFAULT '',
             quantidade REAL NOT NULL,
             tempo_minutos REAL NOT NULL DEFAULT 0
         )
@@ -1032,10 +1033,23 @@ def _garante_schema_notas(conn, engine):
                 cod_cliente INTEGER NOT NULL,
                 emissor TEXT NOT NULL,
                 tipo TEXT NOT NULL,
+                tipo_nota_emitida TEXT NOT NULL DEFAULT '',
                 quantidade DOUBLE PRECISION NOT NULL,
                 tempo_minutos DOUBLE PRECISION NOT NULL DEFAULT 0
             )
             """
+        )
+        cursor.execute(
+            "ALTER TABLE registros ADD COLUMN IF NOT EXISTS tipo_nota_emitida TEXT"
+        )
+        cursor.execute(
+            "UPDATE registros SET tipo_nota_emitida = '' WHERE tipo_nota_emitida IS NULL"
+        )
+        cursor.execute(
+            "ALTER TABLE registros ALTER COLUMN tipo_nota_emitida SET DEFAULT ''"
+        )
+        cursor.execute(
+            "ALTER TABLE registros ALTER COLUMN tipo_nota_emitida SET NOT NULL"
         )
         cursor.execute(
             "ALTER TABLE registros ADD COLUMN IF NOT EXISTS tempo_minutos DOUBLE PRECISION"
@@ -1046,10 +1060,17 @@ def _garante_schema_notas(conn, engine):
     else:
         cursor.execute("PRAGMA table_info(registros)")
         colunas = [coluna[1] for coluna in cursor.fetchall()]
+        if "tipo_nota_emitida" not in colunas:
+            cursor.execute(
+                "ALTER TABLE registros ADD COLUMN tipo_nota_emitida TEXT NOT NULL DEFAULT ''"
+            )
         if "tempo_minutos" not in colunas:
             cursor.execute(
                 "ALTER TABLE registros ADD COLUMN tempo_minutos REAL NOT NULL DEFAULT 0"
             )
+        cursor.execute(
+            "UPDATE registros SET tipo_nota_emitida = '' WHERE tipo_nota_emitida IS NULL"
+        )
         cursor.execute("UPDATE registros SET tempo_minutos = 0 WHERE tempo_minutos IS NULL")
     conn.commit()
 
@@ -1069,24 +1090,56 @@ def _conecta_notas():
         return conn_sqlite, "sqlite"
 
 
-def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade,tempo_minutos):
+def registra_nota(
+    date,
+    cod_cliente,
+    emissor,
+    tipo_documento,
+    tipo_nota_emitida,
+    quantidade,
+    tempo_minutos,
+):
     conn = None
     try:
         conn, engine = _conecta_notas()
         cursor = conn.cursor()
         if engine == "postgres":
             query = """
-                    INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade,tempo_minutos)
-                    VALUES (%s,%s,%s,%s,%s,%s) 
+                    INSERT INTO registros (
+                        date,
+                        cod_cliente,
+                        emissor,
+                        tipo,
+                        tipo_nota_emitida,
+                        quantidade,
+                        tempo_minutos
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)
                     """
             cursor.execute(
                 query,
-                (date,cod_cliente,emissor,tipo_nota,quantidade,tempo_minutos),
+                (
+                    date,
+                    cod_cliente,
+                    emissor,
+                    tipo_documento,
+                    tipo_nota_emitida,
+                    quantidade,
+                    tempo_minutos,
+                ),
             )
         else:
             query = """
-                    INSERT INTO registros (date,cod_cliente,emissor,tipo,quantidade,tempo_minutos)
-                    VALUES (?,?,?,?,?,?)
+                    INSERT INTO registros (
+                        date,
+                        cod_cliente,
+                        emissor,
+                        tipo,
+                        tipo_nota_emitida,
+                        quantidade,
+                        tempo_minutos
+                    )
+                    VALUES (?,?,?,?,?,?,?)
                     """
             cursor.execute(
                 query,
@@ -1094,7 +1147,8 @@ def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade,tempo_minutos):
                     _to_iso_date(date),
                     cod_cliente,
                     emissor,
-                    tipo_nota,
+                    tipo_documento,
+                    tipo_nota_emitida,
                     quantidade,
                     tempo_minutos,
                 ),
@@ -1109,7 +1163,16 @@ def registra_nota(date,cod_cliente,emissor,tipo_nota,quantidade,tempo_minutos):
             conn.close()
 
 
-def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,quantidade,tempo_minutos):
+def atualiza_nota_emitida(
+    id_registro,
+    cod_cliente,
+    date_doc,
+    emissor,
+    tipo_documento,
+    tipo_nota_emitida,
+    quantidade,
+    tempo_minutos,
+):
     conn = None
     try:
         conn, engine = _conecta_notas()
@@ -1117,7 +1180,12 @@ def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,qua
         if engine == "postgres":
             query = """
                     UPDATE registros
-                    SET date = %s, emissor = %s, tipo = %s, quantidade = %s, tempo_minutos = %s
+                    SET date = %s,
+                        emissor = %s,
+                        tipo = %s,
+                        tipo_nota_emitida = %s,
+                        quantidade = %s,
+                        tempo_minutos = %s
                     WHERE id = %s AND cod_cliente = %s
                     """
             cursor.execute(
@@ -1125,7 +1193,8 @@ def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,qua
                 (
                     date_doc,
                     emissor,
-                    tipo_nota,
+                    tipo_documento,
+                    tipo_nota_emitida,
                     quantidade,
                     tempo_minutos,
                     id_registro,
@@ -1135,7 +1204,12 @@ def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,qua
         else:
             query = """
                     UPDATE registros
-                    SET date = ?, emissor = ?, tipo = ?, quantidade = ?, tempo_minutos = ?
+                    SET date = ?,
+                        emissor = ?,
+                        tipo = ?,
+                        tipo_nota_emitida = ?,
+                        quantidade = ?,
+                        tempo_minutos = ?
                     WHERE id = ? AND cod_cliente = ?
                     """
             cursor.execute(
@@ -1143,7 +1217,8 @@ def atualiza_nota_emitida(id_registro,cod_cliente,date_doc,emissor,tipo_nota,qua
                 (
                     _to_iso_date(date_doc),
                     emissor,
-                    tipo_nota,
+                    tipo_documento,
+                    tipo_nota_emitida,
                     quantidade,
                     tempo_minutos,
                     id_registro,
@@ -1224,7 +1299,15 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
         if engine == "postgres":
             if _pesquisa_por_periodo(tipo):
                 query = """
-                        SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                        SELECT
+                            id,
+                            date,
+                            cod_cliente,
+                            emissor,
+                            tipo,
+                            tipo_nota_emitida,
+                            quantidade,
+                            tempo_minutos
                         FROM registros
                         WHERE cod_cliente = %s AND date >= %s AND date <= %s
                         ORDER BY date, id
@@ -1232,7 +1315,15 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
                 cursor.execute(query, (cod_cliente,dt_inicial,dt_final))
             else:
                 query = """
-                        SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                        SELECT
+                            id,
+                            date,
+                            cod_cliente,
+                            emissor,
+                            tipo,
+                            tipo_nota_emitida,
+                            quantidade,
+                            tempo_minutos
                         FROM registros
                         WHERE cod_cliente = %s
                         ORDER BY date, id
@@ -1241,7 +1332,15 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
         else:
             if _pesquisa_por_periodo(tipo):
                 query = """
-                        SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                        SELECT
+                            id,
+                            date,
+                            cod_cliente,
+                            emissor,
+                            tipo,
+                            tipo_nota_emitida,
+                            quantidade,
+                            tempo_minutos
                         FROM registros
                         WHERE cod_cliente = ? AND date >= ? AND date <= ?
                         ORDER BY date, id
@@ -1249,7 +1348,15 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
                 cursor.execute(query, (cod_cliente, _to_iso_date(dt_inicial), _to_iso_date(dt_final)))
             else:
                 query = """
-                        SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                        SELECT
+                            id,
+                            date,
+                            cod_cliente,
+                            emissor,
+                            tipo,
+                            tipo_nota_emitida,
+                            quantidade,
+                            tempo_minutos
                         FROM registros
                         WHERE cod_cliente = ?
                         ORDER BY date, id
@@ -1269,6 +1376,7 @@ def retorna_listagem_notas_emitidas(cod_cliente,dt_inicial,dt_final,tipo):
                         registro[4],
                         registro[5],
                         registro[6],
+                        registro[7],
                     )
                 )
             return normalizado
@@ -1289,7 +1397,15 @@ def retorna_listagem_notas_geral(dt_inicial,dt_final):
 
         if engine == "postgres":
             query = """
-                    SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                    SELECT
+                        id,
+                        date,
+                        cod_cliente,
+                        emissor,
+                        tipo,
+                        tipo_nota_emitida,
+                        quantidade,
+                        tempo_minutos
                     FROM registros
                     WHERE date >= %s AND date <= %s
                     ORDER BY date, id
@@ -1297,7 +1413,15 @@ def retorna_listagem_notas_geral(dt_inicial,dt_final):
             cursor.execute(query, (dt_inicial, dt_final))
         else:
             query = """
-                    SELECT id, date, cod_cliente, emissor, tipo, quantidade, tempo_minutos
+                    SELECT
+                        id,
+                        date,
+                        cod_cliente,
+                        emissor,
+                        tipo,
+                        tipo_nota_emitida,
+                        quantidade,
+                        tempo_minutos
                     FROM registros
                     WHERE date >= ? AND date <= ?
                     ORDER BY date, id
@@ -1317,6 +1441,7 @@ def retorna_listagem_notas_geral(dt_inicial,dt_final):
                         registro[4],
                         registro[5],
                         registro[6],
+                        registro[7],
                     )
                 )
             return normalizado

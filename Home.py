@@ -79,15 +79,21 @@ def _para_minutos_seguro(valor):
 
 
 def _extrai_tempo_registro(registro):
-    if not registro or len(registro) <= 6:
+    if not registro:
         return 0.0
 
-    # Prioriza o indice esperado (tempo_minutos) quando o schema estiver alinhado.
-    valor_indice_6 = registro[6]
-    if isinstance(valor_indice_6, (int, float, str, timedelta, datetime, time)):
-        minutos = _para_minutos_seguro(valor_indice_6)
-        if minutos > 0 or str(valor_indice_6).strip() in ("0", "0.0"):
-            return minutos
+    indices_esperados = []
+    if len(registro) >= 8:
+        indices_esperados.append(7)
+    if len(registro) >= 7:
+        indices_esperados.append(6)
+
+    for indice in indices_esperados:
+        valor = registro[indice]
+        if isinstance(valor, (int, float, str, timedelta, datetime, time)):
+            minutos = _para_minutos_seguro(valor)
+            if minutos > 0 or str(valor).strip() in ("0", "0.0"):
+                return minutos
 
     # Fallback para bases legadas em que existam colunas extras entre quantidade e tempo.
     for indice in range(len(registro) - 1, 5, -1):
@@ -100,6 +106,35 @@ def _extrai_tempo_registro(registro):
     return 0.0
 
 
+def _para_float_seguro(valor):
+    try:
+        return float(valor)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _extrai_quantidade_registro(registro):
+    if not registro:
+        return 0.0
+    if len(registro) >= 8:
+        return _para_float_seguro(registro[6])
+    if len(registro) >= 6:
+        return _para_float_seguro(registro[5])
+    return 0.0
+
+
+def _extrai_tipo_nota_emitida_registro(registro):
+    if not registro or len(registro) < 8:
+        return ""
+    valor = registro[5]
+    return "" if valor is None else str(valor).strip()
+
+
+def _exibe_tipo_nota_emitida(valor):
+    texto = "" if valor is None else str(valor).strip()
+    return texto if texto else "Nao informado"
+
+
 st.title("Central GCONT", "GCONT")
 st.divider()
 st.header("Bem Vindo(a)")
@@ -110,6 +145,7 @@ pagina = st.segmented_control(
 
 if pagina == "Controle de Notas":
     st.subheader("Controle de notas emitidas no escritorio")
+    tipos_documento = ["NF-e", "NFC-e", "CT-e", "NFS-e"]
     empresa = st.selectbox(
         "Selecione a empresa que foi lancado Notas",
         retorna_codigos_empresas(),
@@ -117,7 +153,7 @@ if pagina == "Controle de Notas":
     )
 
     with st.container(border=True):
-        c1, c2, c3, c4, c5 = st.columns(5)
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         with c1:
             date_doc = st.date_input(
                 "Selecione a data de emissao", width=250, format="DD/MM/YYYY"
@@ -125,17 +161,32 @@ if pagina == "Controle de Notas":
         with c2:
             user = st.text_input("Usuario")
         with c3:
-            tipo = st.radio("Documento", ["NF-e", "NFC-e", "CT-e", "NFS-e"], horizontal=True)
+            tipo_documento = st.radio("Documento", tipos_documento, horizontal=True)
         with c4:
-            quantidade = st.number_input("Quantidade", step=0, width=250)
+            tipo_nota_emitida = st.text_input(
+                "Tipo da nota emitida",
+                placeholder="Ex.: remessa, devolucao, venda, controle de estoque",
+            )
         with c5:
+            quantidade = st.number_input("Quantidade", step=0, width=250)
+        with c6:
             tempo_gasto_min = st.number_input(
                 "Tempo gasto (min)", min_value=0.0, step=1.0, width=250
             )
     save = st.button("Salvar")
 
     if save:
-        if registra_nota(date_doc, empresa[0], user, tipo, quantidade, tempo_gasto_min):
+        if not str(tipo_nota_emitida).strip():
+            st.warning("Informe o tipo da nota emitida.")
+        elif registra_nota(
+            date_doc,
+            empresa[0],
+            user,
+            tipo_documento,
+            tipo_nota_emitida.strip(),
+            quantidade,
+            tempo_gasto_min,
+        ):
             st.success("Lancamento Efetuado!")
     st.divider()
     pesquisa = st.radio("Selecione o Tipo de pesquisa", ["Geral", "Por periodo"], horizontal=True)
@@ -152,6 +203,7 @@ if pagina == "Controle de Notas":
     listagem_notas = []
     for registro in notas:
         data_exibicao = _formata_data_exibicao(registro[1])
+        tipo_nota_emitida = _extrai_tipo_nota_emitida_registro(registro)
         tempo_minutos = _extrai_tempo_registro(registro)
         listagem_notas.append(
             [
@@ -160,13 +212,23 @@ if pagina == "Controle de Notas":
                 registro[2],
                 registro[3],
                 registro[4],
-                registro[5],
+                _exibe_tipo_nota_emitida(tipo_nota_emitida),
+                _extrai_quantidade_registro(registro),
                 tempo_minutos,
             ]
         )
     df_notas = pd.DataFrame(
         listagem_notas,
-        columns=["ID", "Data", "Empresa", "Emissor", "Tipo", "Quantidade", "Tempo (min)"],
+        columns=[
+            "ID",
+            "Data",
+            "Empresa",
+            "Emissor",
+            "Documento",
+            "Tipo da Nota",
+            "Quantidade",
+            "Tempo (min)",
+        ],
     )
     if df_notas.empty:
         total_notas = 0.0
@@ -186,7 +248,11 @@ if pagina == "Controle de Notas":
         st.metric("Tempo medio por nota", _formata_minutos_exibicao(tempo_medio_min))
     with col2:
         st.header("Listagem das notas")
-        st.dataframe(df_notas[["ID", "Data", "Emissor", "Tipo", "Quantidade", "Tempo (min)"]])
+        st.dataframe(
+            df_notas[
+                ["ID", "Data", "Emissor", "Documento", "Tipo da Nota", "Quantidade", "Tempo (min)"]
+            ]
+        )
 
         if not df_notas.empty:
             st.markdown("**Tempo medio por funcionario na empresa selecionada**")
@@ -233,14 +299,14 @@ if pagina == "Controle de Notas":
 
         if notas:
             st.subheader("Atualizar ou excluir lancamento")
-            tipos_documento = ["NF-e", "NFC-e", "CT-e", "NFS-e"]
 
             nota_selecionada = st.selectbox(
                 "Selecione o lancamento",
                 notas,
                 format_func=lambda registro: (
                     f"ID {registro[0]} | {_formata_data_exibicao(registro[1])} | "
-                    f"{registro[3]} | {registro[4]} | Qtd {registro[5]} | "
+                    f"{registro[3]} | {registro[4]} | {_exibe_tipo_nota_emitida(_extrai_tipo_nota_emitida_registro(registro))} | "
+                    f"Qtd {_extrai_quantidade_registro(registro)} | "
                     f"Tempo {_extrai_tempo_registro(registro):.2f} min"
                 ),
             )
@@ -248,13 +314,15 @@ if pagina == "Controle de Notas":
             nota_id = nota_selecionada[0]
             data_edicao = _data_para_widget(nota_selecionada[1])
             tempo_atual = _extrai_tempo_registro(nota_selecionada)
+            quantidade_atual = _extrai_quantidade_registro(nota_selecionada)
             tipo_atual = (
                 nota_selecionada[4]
                 if nota_selecionada[4] in tipos_documento
                 else tipos_documento[0]
             )
+            tipo_nota_atual = _extrai_tipo_nota_emitida_registro(nota_selecionada)
 
-            e1, e2, e3, e4, e5 = st.columns(5)
+            e1, e2, e3, e4, e5, e6 = st.columns(6)
             with e1:
                 nova_data = st.date_input(
                     "Data do lancamento",
@@ -270,20 +338,26 @@ if pagina == "Controle de Notas":
                 )
             with e3:
                 novo_tipo = st.selectbox(
-                    "Tipo",
+                    "Documento",
                     tipos_documento,
                     index=tipos_documento.index(tipo_atual),
                     key=f"edit_tipo_{nota_id}",
                 )
             with e4:
+                novo_tipo_nota_emitida = st.text_input(
+                    "Tipo da nota emitida",
+                    value=tipo_nota_atual,
+                    key=f"edit_tipo_nota_emitida_{nota_id}",
+                )
+            with e5:
                 nova_quantidade = st.number_input(
                     "Quantidade",
                     min_value=0.0,
                     step=1.0,
-                    value=float(nota_selecionada[5]),
+                    value=quantidade_atual,
                     key=f"edit_quantidade_{nota_id}",
                 )
-            with e5:
+            with e6:
                 novo_tempo_min = st.number_input(
                     "Tempo gasto (min)",
                     min_value=0.0,
@@ -295,20 +369,24 @@ if pagina == "Controle de Notas":
             b1, b2 = st.columns(2)
             with b1:
                 if st.button("Atualizar lancamento", key=f"btn_atualizar_{nota_id}"):
-                    atualizado = atualiza_nota_emitida(
-                        nota_id,
-                        empresa[0],
-                        nova_data,
-                        novo_emissor,
-                        novo_tipo,
-                        nova_quantidade,
-                        novo_tempo_min,
-                    )
-                    if atualizado:
-                        st.success("Lancamento atualizado com sucesso.")
-                        st.rerun()
+                    if not str(novo_tipo_nota_emitida).strip():
+                        st.warning("Informe o tipo da nota emitida.")
                     else:
-                        st.warning("Nao foi possivel atualizar o lancamento selecionado.")
+                        atualizado = atualiza_nota_emitida(
+                            nota_id,
+                            empresa[0],
+                            nova_data,
+                            novo_emissor,
+                            novo_tipo,
+                            novo_tipo_nota_emitida.strip(),
+                            nova_quantidade,
+                            novo_tempo_min,
+                        )
+                        if atualizado:
+                            st.success("Lancamento atualizado com sucesso.")
+                            st.rerun()
+                        else:
+                            st.warning("Nao foi possivel atualizar o lancamento selecionado.")
 
             with b2:
                 confirmar_exclusao = st.checkbox(
@@ -343,45 +421,66 @@ elif pagina == "Resumo Mensal de Notas":
     else:
         df_mes = pd.DataFrame(
             notas_mes,
-            columns=["ID", "Data", "Cliente", "Emissor", "Tipo", "Quantidade", "Tempo (min)"],
+            columns=[
+                "ID",
+                "Data",
+                "Cliente",
+                "Emissor",
+                "Documento",
+                "Tipo da Nota",
+                "Quantidade",
+                "Tempo (min)",
+            ],
         )
         df_mes["Data"] = pd.to_datetime(df_mes["Data"], errors="coerce").dt.date
         df_mes["Quantidade"] = pd.to_numeric(df_mes["Quantidade"], errors="coerce").fillna(0.0)
         df_mes["Tempo (min)"] = pd.to_numeric(df_mes["Tempo (min)"], errors="coerce").fillna(0.0)
         df_mes["Cliente"] = pd.to_numeric(df_mes["Cliente"], errors="coerce").fillna(0).astype(int)
+        df_mes["Tipo da Nota"] = df_mes["Tipo da Nota"].fillna("").astype(str).str.strip()
+        df_mes["Tipo da Nota"] = df_mes["Tipo da Nota"].replace("", "Nao informado")
         tempo_medio_mes = (
             df_mes["Tempo (min)"].sum() / df_mes["Quantidade"].sum()
             if df_mes["Quantidade"].sum() > 0
             else 0
         )
 
-        c1, c2, c3, c4, c5 = st.columns(5)
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         c1.metric("Total de notas", f"{df_mes['Quantidade'].sum():.2f}")
         c2.metric("Lancamentos", f"{len(df_mes)}")
         c3.metric("Emissores", f"{df_mes['Emissor'].nunique()}")
-        c4.metric("Tipos de documento", f"{df_mes['Tipo'].nunique()}")
-        c5.metric("Tempo medio por nota", _formata_minutos_exibicao(tempo_medio_mes))
+        c4.metric("Tipos de documento", f"{df_mes['Documento'].nunique()}")
+        c5.metric("Tipos de nota", f"{df_mes['Tipo da Nota'].nunique()}")
+        c6.metric("Tempo medio por nota", _formata_minutos_exibicao(tempo_medio_mes))
 
         soma_emissor = (
             df_mes.groupby("Emissor", as_index=False)["Quantidade"]
             .sum()
             .sort_values("Quantidade", ascending=False)
         )
-        soma_tipo = (
-            df_mes.groupby("Tipo", as_index=False)["Quantidade"]
+        soma_documento = (
+            df_mes.groupby("Documento", as_index=False)["Quantidade"]
+            .sum()
+            .sort_values("Quantidade", ascending=False)
+        )
+        soma_tipo_nota = (
+            df_mes.groupby("Tipo da Nota", as_index=False)["Quantidade"]
             .sum()
             .sort_values("Quantidade", ascending=False)
         )
 
-        col_emissor, col_tipo = st.columns(2)
+        col_emissor, col_documento, col_tipo_nota = st.columns(3)
         with col_emissor:
             st.markdown("**Somatorio por emissor**")
             st.dataframe(soma_emissor, use_container_width=True, hide_index=True)
             st.bar_chart(soma_emissor.set_index("Emissor"))
-        with col_tipo:
-            st.markdown("**Somatorio por tipo de documento**")
-            st.dataframe(soma_tipo, use_container_width=True, hide_index=True)
-            st.bar_chart(soma_tipo.set_index("Tipo"))
+        with col_documento:
+            st.markdown("**Somatorio por documento**")
+            st.dataframe(soma_documento, use_container_width=True, hide_index=True)
+            st.bar_chart(soma_documento.set_index("Documento"))
+        with col_tipo_nota:
+            st.markdown("**Somatorio por tipo da nota**")
+            st.dataframe(soma_tipo_nota, use_container_width=True, hide_index=True)
+            st.bar_chart(soma_tipo_nota.set_index("Tipo da Nota"))
 
         st.markdown("**Evolucao diaria do mes**")
         evolucao_diaria = (
@@ -416,12 +515,12 @@ elif pagina == "Resumo Mensal de Notas":
             )
             st.dataframe(top_clientes, use_container_width=True, hide_index=True)
 
-        st.markdown("**Cruzamento emissor x tipo**")
+        st.markdown("**Cruzamento emissor x documento**")
         cruzamento = pd.pivot_table(
             df_mes,
             values="Quantidade",
             index="Emissor",
-            columns="Tipo",
+            columns="Documento",
             aggfunc="sum",
             fill_value=0,
         )
@@ -434,7 +533,16 @@ elif pagina == "Resumo Mensal de Notas":
             )
             st.dataframe(
                 df_detalhes[
-                    ["ID", "Data", "Cliente", "Emissor", "Tipo", "Quantidade", "Tempo (min)"]
+                    [
+                        "ID",
+                        "Data",
+                        "Cliente",
+                        "Emissor",
+                        "Documento",
+                        "Tipo da Nota",
+                        "Quantidade",
+                        "Tempo (min)",
+                    ]
                 ],
                 use_container_width=True,
                 hide_index=True,

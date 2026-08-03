@@ -16,14 +16,7 @@ def teste():
     conn = conecta_odbc()
     cursor = conn.cursor()
     query = """
-            SELECT
-                proventos, competencia
-                from 
-                bethadba.fobasesserv
-            WHERE
-            codi_emp = 32
-            AND
-            i_empregados = 8
+            SELECT TOP 2 CONTEUDO_XML FROM bethadba.EFATENDIMENTO_NFE_XML_V2
                """
     cursor.execute(query)
     resultado = cursor.fetchall()
