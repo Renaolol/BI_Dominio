@@ -135,6 +135,22 @@ def _exibe_tipo_nota_emitida(valor):
     return texto if texto else "Nao informado"
 
 
+def _excluir_lancamento_nota(nota_id, cod_cliente, confirmar):
+    if not confirmar:
+        st.warning("Marque a confirmacao para excluir o lancamento.")
+        return False
+
+    excluido = exclui_nota_emitida(nota_id, cod_cliente)
+    if excluido:
+        st.success("Lancamento excluido com sucesso.")
+        st.session_state.pop(f"confirmar_exclusao_{nota_id}", None)
+        st.rerun()
+        return True
+
+    st.warning("Nao foi possivel excluir o lancamento selecionado.")
+    return False
+
+
 st.title("Central GCONT", "GCONT")
 st.divider()
 st.header("Bem Vindo(a)")
@@ -253,6 +269,16 @@ if pagina == "Controle de Notas":
                 ["ID", "Data", "Emissor", "Documento", "Tipo da Nota", "Quantidade", "Tempo (min)"]
             ]
         )
+
+        if not df_notas.empty:
+            st.markdown("**Excluir lancamento por ID**")
+            id_para_exclusao = st.selectbox(
+                "Selecione o ID do lancamento",
+                df_notas["ID"].tolist(),
+                key="id_lancamento_exclusao",
+            )
+            if st.button("Excluir lancamento", icon=":material/delete:", key="btn_excluir_por_id"):
+                _excluir_lancamento_nota(id_para_exclusao, empresa[0], True)
 
         if not df_notas.empty:
             st.markdown("**Tempo medio por funcionario na empresa selecionada**")
@@ -394,15 +420,7 @@ if pagina == "Controle de Notas":
                     key=f"confirmar_exclusao_{nota_id}",
                 )
                 if st.button("Excluir lancamento", key=f"btn_excluir_{nota_id}"):
-                    if not confirmar_exclusao:
-                        st.warning("Marque a confirmacao para excluir o lancamento.")
-                    else:
-                        excluido = exclui_nota_emitida(nota_id, empresa[0])
-                        if excluido:
-                            st.success("Lancamento excluido com sucesso.")
-                            st.rerun()
-                        else:
-                            st.warning("Nao foi possivel excluir o lancamento selecionado.")
+                    _excluir_lancamento_nota(nota_id, empresa[0], confirmar_exclusao)
 
 elif pagina == "Resumo Mensal de Notas":
     st.subheader("Resumo mensal de notas emitidas (todas as empresas)")
