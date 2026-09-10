@@ -8,6 +8,8 @@ from dependencies import *
 
 st.set_page_config(layout="wide")
 
+USUARIOS_NOTAS = ["ANA", "ANDRÉ", "DJEURISTON", "LETICIA", "GIOVANA", "JOSI", "DANI"]
+
 
 def _formata_data_exibicao(data_registro):
     if hasattr(data_registro, "strftime"):
@@ -175,7 +177,12 @@ if pagina == "Controle de Notas":
                 "Selecione a data de emissao", width=250, format="DD/MM/YYYY"
             )
         with c2:
-            user = st.text_input("Usuario")
+            user = st.selectbox(
+                "Usuario",
+                USUARIOS_NOTAS,
+                index=None,
+                placeholder="Selecione o seu nome",
+            )
         with c3:
             tipo_documento = st.radio("Documento", tipos_documento, horizontal=True)
         with c4:
@@ -192,7 +199,9 @@ if pagina == "Controle de Notas":
     save = st.button("Salvar")
 
     if save:
-        if not str(tipo_nota_emitida).strip():
+        if not user:
+            st.warning("Selecione o usuario que realizou o lancamento.")
+        elif not str(tipo_nota_emitida).strip():
             st.warning("Informe o tipo da nota emitida.")
         elif registra_nota(
             date_doc,
