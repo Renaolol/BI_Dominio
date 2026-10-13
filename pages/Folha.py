@@ -12,6 +12,7 @@ st.set_page_config(layout="wide")
 
 st.title("DEPARTAMENTO PESSOAL - ADRIANE E GABRIELA")
 with st.expander("Férias"):
+    st.caption("Funcionários com férias programadas para hoje ou uma data futura são removidos automaticamente das duas relações.")
     col1,col2 = st.columns(2)
     with col1:
         st.subheader("Funcionários que recebem menos de 1 sal. Min")

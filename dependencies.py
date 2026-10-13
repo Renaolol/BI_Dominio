@@ -124,10 +124,18 @@ def retorna_prox_ferias(competencia:date) -> list :
                 f.DATA_FIM <=? 
             AND 
                 r.demissao is NULL
+            AND NOT EXISTS (
+                SELECT 1
+                FROM bethadba.FOFERIAS_PROGRAMACAO fp
+                WHERE fp.CODI_EMP = e.codi_emp
+                  AND fp.I_EMPREGADOS = e.i_empregados
+                  AND fp.TIPO = 1
+                  AND fp.GOZO_INICIO >= ?
+            )
             ORDER BY 
                 f.DATA_FIM
 			"""
-    cursor.execute(query, (inicio_mes, fim_mes))
+    cursor.execute(query, (inicio_mes, fim_mes, date.today()))
     resultado = cursor.fetchall()
     conn.close()
     return resultado 
@@ -170,10 +178,18 @@ def vencimento_ferias (competencia_incial, competencia_final):
             e.codi_emp = emp.CODIGO
             WHERE
             f.LIMITE_PARA_GOZO >= ? AND f.LIMITE_PARA_GOZO <=? AND (f.SITUACAO = 1 OR f.SITUACAO = 2) AND emp.SITUACAO != 'I' AND emp.CODIGO <=999
+            AND NOT EXISTS (
+                SELECT 1
+                FROM bethadba.FOFERIAS_PROGRAMACAO fp
+                WHERE fp.CODI_EMP = f.CODI_EMP
+                  AND fp.I_EMPREGADOS = f.I_EMPREGADOS
+                  AND fp.TIPO = 1
+                  AND fp.GOZO_INICIO >= ?
+            )
             ORDER BY
             f.DATA_FIM
             """
-    cursor.execute(query2, (competencia_incial, competencia_final))
+    cursor.execute(query2, (competencia_incial, competencia_final, date.today()))
     resultado = cursor.fetchall()
     conn.close()
     return resultado 
