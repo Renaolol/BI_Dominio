@@ -88,11 +88,18 @@ def retorna_menor_salario_min(competencia):
         ON
             m.codi_emp = emp.CODIGO
         WHERE e.admissao <= ?
+            AND NOT EXISTS (
+                SELECT 1
+                FROM bethadba.forescisoes r
+                WHERE r.codi_emp = m.codi_emp
+                    AND r.i_empregados = m.i_empregados
+                    AND r.demissao <= ?
+            )
         GROUP BY m.CODI_EMP, m.I_EMPREGADOS, e.nome, emp.NOME
         HAVING SUM(cb.BASE) < ?
         ORDER BY emp.NOME, e.nome
     """
-    cursor.execute(query,(compe, fim_compe, salario_minimo))
+    cursor.execute(query,(compe, fim_compe, fim_compe, salario_minimo))
     resultado = cursor.fetchall()
     conn.close()
     return resultado
