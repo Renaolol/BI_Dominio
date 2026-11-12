@@ -64,6 +64,7 @@ def retorna_lanctos(codi_emp,data_lancto):
 #lanctos = retorna_lanctos(1, "2025-11-01")
 def retorna_menor_salario_min(competencia):
     compe=date(competencia.year,competencia.month,1)
+    fim_compe = compe.replace(day=calendar.monthrange(compe.year,compe.month)[1])
     salario_minimo = 1621
     conn = conecta_odbc()
     cursor = conn.cursor()
@@ -78,7 +79,7 @@ def retorna_menor_salario_min(competencia):
         INNER JOIN bethadba.focalculosbases cb
             ON cb.I_CALCULOS = m.I_CALCULOS
             AND cb.i_cadbases IN (9, 10)
-        LEFT JOIN
+        INNER JOIN
             bethadba.foempregados e
         ON
             m.codi_emp = e.codi_emp AND m.i_empregados = e.i_empregados
@@ -86,11 +87,12 @@ def retorna_menor_salario_min(competencia):
             bethadba.PRVCLIENTES emp
         ON
             m.codi_emp = emp.CODIGO
+        WHERE e.admissao <= ?
         GROUP BY m.CODI_EMP, m.I_EMPREGADOS, e.nome, emp.NOME
         HAVING SUM(cb.BASE) < ?
         ORDER BY emp.NOME, e.nome
     """
-    cursor.execute(query,(compe, salario_minimo))
+    cursor.execute(query,(compe, fim_compe, salario_minimo))
     resultado = cursor.fetchall()
     conn.close()
     return resultado
