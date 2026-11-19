@@ -149,6 +149,13 @@ def retorna_prox_ferias(competencia:date) -> list :
                   AND fp.TIPO = 1
                   AND fp.GOZO_INICIO >= ?
             )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM bethadba.FOFERIAS fc
+                WHERE fc.CODI_EMP = f.CODI_EMP
+                  AND fc.I_EMPREGADOS = f.I_EMPREGADOS
+                  AND fc.INICIO_AQUISITIVO = f.DATA_INICIO
+            )
             ORDER BY 
                 f.DATA_FIM
 			"""
@@ -202,6 +209,13 @@ def vencimento_ferias (competencia_incial, competencia_final):
                   AND fp.I_EMPREGADOS = f.I_EMPREGADOS
                   AND fp.TIPO = 1
                   AND fp.GOZO_INICIO >= ?
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM bethadba.FOFERIAS fc
+                WHERE fc.CODI_EMP = f.CODI_EMP
+                  AND fc.I_EMPREGADOS = f.I_EMPREGADOS
+                  AND fc.INICIO_AQUISITIVO = f.DATA_INICIO
             )
             ORDER BY
             f.DATA_FIM
